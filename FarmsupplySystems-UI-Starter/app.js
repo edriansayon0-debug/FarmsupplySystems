@@ -110,7 +110,7 @@ function navigate(page) {
   if (page === "customers") {
     location.hash = "customers";
 
-    document.getElementById("sidebar").classList.remove("open");
+    ("sidebar").classList.remove("open");
 
     loadOrganizationCustomerManagement();
     return;
@@ -135,13 +135,13 @@ function navigate(page) {
     </section>
   `;
 
-  document.getElementById("back").onclick = () => {
+  ("back").onclick = () => {
     location.reload();
   };
 
   location.hash = page;
 
-  document.getElementById("sidebar").classList.remove("open");
+  ("sidebar").classList.remove("open");
 }
 
 document.querySelectorAll(".nav").forEach((nav) => {
@@ -156,11 +156,11 @@ document.querySelectorAll("[data-goto]").forEach((button) => {
   });
 });
 
-document.getElementById("menu").onclick = () => {
-  document.getElementById("sidebar").classList.toggle("open");
+("menu").onclick = () => {
+  ("sidebar").classList.toggle("open");
 };
 
-document.getElementById("refresh").onclick = () => {
+("refresh").onclick = () => {
   notify("Dashboard preview refreshed.");
 };
 
@@ -615,9 +615,16 @@ function renderOrderManagement() {
 };
 
   document.getElementById("refreshOrders").onclick = async () => {
-    await refreshCustomerData();
-    renderOrderManagement();
-  };
+  await fetchOrganizationCustomers();
+
+  renderOrderManagement();
+
+  if (selectedOrderId) {
+    await renderOrderDetails();
+  }
+
+  notify("Orders refreshed.");
+};
 
   renderOrderRows();
 }
