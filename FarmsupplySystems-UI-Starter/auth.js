@@ -16,8 +16,6 @@ const loginSubmit = document.getElementById("loginSubmit");
 const authMessage = document.getElementById("authMessage");
 const forgotPassword = document.getElementById("forgotPassword");
 
-const adminLoginTab = document.getElementById("adminLoginTab");
-const customerLoginTab = document.getElementById("customerLoginTab");
 const loginTitle = document.getElementById("loginTitle");
 const loginDescription = document.getElementById("loginDescription");
 const loginFooter = document.getElementById("loginFooter");
@@ -28,7 +26,6 @@ const customerSignOut = document.getElementById("customerSignOut");
 
 const ORGANIZATION_ID = "4e762e56-2d6c-468d-a50b-6c009e700064";
 
-let loginMode = "admin";
 let currentCustomer = null;
 let availableProducts = [];
 let customerCart = new Map();
@@ -110,52 +107,6 @@ function showMessage(message, success = false) {
   authMessage.textContent = message;
   authMessage.style.color = success ? "#2d8a50" : "#c0392b";
 }
-
-// ==========================================
-// LOGIN MODE
-// ==========================================
-
-function setLoginMode(mode) {
-  loginMode = mode;
-
-  showMessage("");
-
-  if (mode === "admin") {
-    loginTitle.textContent = "Welcome back";
-    loginDescription.textContent =
-      "Sign in to your administrator account.";
-
-    loginFooter.textContent =
-      "Access is limited to authorized S.T.P.B personnel.";
-
-    adminLoginTab.style.background = "#1b4332";
-    adminLoginTab.style.color = "#ffffff";
-
-    customerLoginTab.style.background = "#e8eee9";
-    customerLoginTab.style.color = "#1b4332";
-  } else {
-    loginTitle.textContent = "Welcome, Customer";
-    loginDescription.textContent =
-      "Sign in to browse our farm supplies and equipment.";
-
-    loginFooter.textContent =
-      "Customer access for S.T.P.B Farm Supplies & Equipment.";
-
-    customerLoginTab.style.background = "#1b4332";
-    customerLoginTab.style.color = "#ffffff";
-
-    adminLoginTab.style.background = "#e8eee9";
-    adminLoginTab.style.color = "#1b4332";
-  }
-}
-
-adminLoginTab.addEventListener("click", () => {
-  setLoginMode("admin");
-});
-
-customerLoginTab.addEventListener("click", () => {
-  setLoginMode("customer");
-});
 
 // ==========================================
 // VALIDATE ADMINISTRATOR ACCOUNT
