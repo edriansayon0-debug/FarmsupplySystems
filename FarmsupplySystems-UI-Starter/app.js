@@ -1116,7 +1116,7 @@ async function loadOrganizationCustomerManagement() {
                 <th>ID</th>
                 <th>CUSTOMER NAME</th>
                 <th>TYPE</th>
-                <th>PHONE</th>
+                <th>TOTAL SPENT</th>
                 <th>STATUS</th>
                 <th></th>
               </tr>
@@ -1237,22 +1237,22 @@ function renderOrganizationCustomerRows() {
       row.style.background = "#e8f5eb";
     }
 
-    row.innerHTML = `
-      <td class="ref">${safeText(customer.id.slice(0, 8).toUpperCase())}</td>
-      <td>${safeText(customer.business_name || customer.full_name)}</td>
-      <td>${safeText(customer.customer_type)}</td>
-      <td>${safeText(customer.phone || "—")}</td>
-      <td>
-        <span class="${customer.status === "active" ? "tag" : "pending"}">
-          ${safeText(customer.status)}
-        </span>
-      </td>
-      <td>
-        <button class="link" data-customer-edit="${safeText(customer.id)}">
-          Edit
-        </button>
-      </td>
-    `;
+row.innerHTML = `
+  <td class="ref">${safeText(customer.id.slice(0, 8).toUpperCase())}</td>
+  <td>${safeText(customer.business_name || customer.full_name)}</td>
+  <td>${safeText(customer.customer_type)}</td>
+  <td>${money(getCustomerPaidTotal(customer.id))}</td>
+  <td>
+    <span class="${customer.status === "active" ? "tag" : "pending"}">
+      ${safeText(customer.status)}
+    </span>
+  </td>
+  <td>
+    <button class="link" data-customer-edit="${safeText(customer.id)}">
+      Edit
+    </button>
+  </td>
+`;
 
     row.style.cursor = "pointer";
     row.addEventListener("click", (event) => {
