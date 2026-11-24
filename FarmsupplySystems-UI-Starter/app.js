@@ -672,7 +672,7 @@ function renderOrderRows() {
 
     row.innerHTML = `
       <td class="ref">
-        ${safeText(order.order_number)}
+        ${safeText(order.order_number || order.id || "No Order ID")}
       </td>
 
       <td>
@@ -680,7 +680,10 @@ function renderOrderRows() {
       </td>
 
       <td>
-        ${new Date(order.created_at).toLocaleDateString("en-PH")}
+    ${
+    order.created_at && !isNaN(new Date(order.created_at).getTime())
+      ? new Date(order.created_at).toLocaleDateString("en-PH")
+      : "Date not available" }
       </td>
 
       <td>
