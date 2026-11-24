@@ -112,7 +112,7 @@ function navigate(page) {
 
     document.getElementById("sidebar").classList.remove("open");
 
-    loadCustomerManagement();
+    loadOrganizationCustomerManagement();
     return;
   }
 
@@ -1062,4 +1062,437 @@ async function loadCustomerManagement() {
 
 if (location.hash && labels[location.hash.slice(1)]) {
   navigate(location.hash.slice(1));
+}
+
+
+/* =========================================
+   ORGANIZATION CUSTOMER MANAGEMENT
+========================================= */
+
+let organizationCustomers = [];
+let selectedOrganizationCustomerId = null;
+
+async function loadOrganizationCustomerManagement() {
+  title.textContent = "Customer Management";
+
+  content.innerHTML = `
+    <div class="sectiontitle">
+      <div>
+        <h2>Customer Accounts & Ledgers</h2>
+        <p>Manage individual and business customers.</p>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="soft" id="openOrderManagement">
+          View Order Management
+        </button>
+        <button class="outline" id="refreshOrganizationCustomers">
+          ↻ Refresh
+        </button>
+        <button class="soft" id="addOrganizationCustomer">
+          + Add Customer
+        </button>
+      </div>
+    </div>
+
+    <section class="grid"
+      style="grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);align-items:stretch">
+
+      <article class="card panel">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px">
+          <input id="organizationCustomerSearch"
+            placeholder="Search customers..."
+            style="max-width:240px;margin:0;padding:9px 11px;border:1px solid #e5e1d8;border-radius:7px;background:#fff;font:12px DM Sans">
+
+          <span class="count" id="organizationCustomerCount">
+            Loading...
+          </span>
+        </div>
+
+        <div class="tablewrap" style="margin-top:0">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>CUSTOMER NAME</th>
+                <th>TYPE</th>
+                <th>PHONE</th>
+                <th>STATUS</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="organizationCustomerRows">
+              <tr><td colspan="6">Loading customers...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="card panel">
+        <div class="panelhead">
+          <div>
+            <h3 id="organizationCustomerDetailsTitle">Customer Details</h3>
+            <p id="organizationCustomerDetailsSubtitle">
+              Select a customer or add a new one.
+            </p>
+          </div>
+        </div>
+
+        <div id="organizationCustomerDetails" style="margin-top:18px">
+          <p style="color:#85877e">
+            Customer information will appear here.
+          </p>
+        </div>
+      </article>
+    </section>
+  `;
+
+  document.getElementById("openOrderManagement").onclick = () => {
+    selectedCustomerId = null;
+    selectedOrderId = null;
+    renderOrderManagement();
+  };
+
+  document.getElementById("refreshOrganizationCustomers").onclick =
+    loadOrganizationCustomerManagement;
+
+  document.getElementById("addOrganizationCustomer").onclick =
+    () => showOrganizationCustomerForm(null);
+
+  document.getElementById("organizationCustomerSearch").oninput =
+    renderOrganizationCustomerRows;
+
+  await fetchOrganizationCustomers();
+
+  renderOrganizationCustomerRows();
+
+  if (selectedOrganizationCustomerId) {
+    renderOrganizationCustomerDetails();
+  }
+}
+
+async function fetchOrganizationCustomers() {
+  const { data, error } = await supabase
+    .from("organization_customers")
+    .select(`
+      id,
+      organization_id,
+      customer_type,
+      full_name,
+      business_name,
+      email,
+      phone,
+      address,
+      status,
+      notes,
+      created_at
+    `)
+    .eq("organization_id", ORG_ID)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Customer loading error:", error);
+    notify("Unable to load customers: " + error.message);
+    return;
+  }
+
+  organizationCustomers = data || [];
+}
+
+function renderOrganizationCustomerRows() {
+  const tbody = document.getElementById("organizationCustomerRows");
+  const count = document.getElementById("organizationCustomerCount");
+  const search = document.getElementById("organizationCustomerSearch");
+
+  if (!tbody || !count || !search) return;
+
+  const term = search.value.trim().toLowerCase();
+
+  const filtered = organizationCustomers.filter((customer) => {
+    return [
+      customer.full_name,
+      customer.business_name,
+      customer.email,
+      customer.phone,
+      customer.customer_type,
+    ].some((value) => String(value || "").toLowerCase().includes(term));
+  });
+
+  count.textContent = `${filtered.length} customers`;
+  tbody.replaceChildren();
+
+  if (!filtered.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6">No customers found. Click Add Customer to create one.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  filtered.forEach((customer) => {
+    const row = document.createElement("tr");
+
+    if (customer.id === selectedOrganizationCustomerId) {
+      row.style.background = "#e8f5eb";
+    }
+
+    row.innerHTML = `
+      <td class="ref">${safeText(customer.id.slice(0, 8).toUpperCase())}</td>
+      <td>${safeText(customer.business_name || customer.full_name)}</td>
+      <td>${safeText(customer.customer_type)}</td>
+      <td>${safeText(customer.phone || "—")}</td>
+      <td>
+        <span class="${customer.status === "active" ? "tag" : "pending"}">
+          ${safeText(customer.status)}
+        </span>
+      </td>
+      <td>
+        <button class="link" data-customer-edit="${safeText(customer.id)}">
+          Edit
+        </button>
+      </td>
+    `;
+
+    row.style.cursor = "pointer";
+    row.addEventListener("click", (event) => {
+      if (event.target.closest("[data-customer-edit]")) return;
+
+      selectedOrganizationCustomerId = customer.id;
+      renderOrganizationCustomerRows();
+      renderOrganizationCustomerDetails();
+    });
+
+    tbody.appendChild(row);
+  });
+
+  tbody.querySelectorAll("[data-customer-edit]").forEach((button) => {
+    button.onclick = (event) => {
+      event.stopPropagation();
+
+      const customer = organizationCustomers.find(
+        (item) => item.id === button.dataset.customerEdit
+      );
+
+      if (customer) showOrganizationCustomerForm(customer);
+    };
+  });
+}
+
+function renderOrganizationCustomerDetails() {
+  const container = document.getElementById("organizationCustomerDetails");
+  const customer = organizationCustomers.find(
+    (item) => item.id === selectedOrganizationCustomerId
+  );
+
+  if (!container) return;
+
+  if (!customer) {
+    container.textContent = "Select a customer to view details.";
+    return;
+  }
+
+  document.getElementById("organizationCustomerDetailsTitle").textContent =
+    customer.business_name || customer.full_name;
+
+  document.getElementById("organizationCustomerDetailsSubtitle").textContent =
+    customer.customer_type === "business"
+      ? "Business Account"
+      : "Individual Account";
+
+  container.innerHTML = `
+    <p><b>Customer Name:</b><br>${safeText(customer.full_name)}</p>
+    <p><b>Business Name:</b><br>${safeText(customer.business_name || "—")}</p>
+    <p><b>Email:</b><br>${safeText(customer.email || "—")}</p>
+    <p><b>Contact Number:</b><br>${safeText(customer.phone || "—")}</p>
+    <p><b>Address:</b><br>${safeText(customer.address || "—")}</p>
+    <p><b>Status:</b> ${safeText(customer.status)}</p>
+    <p><b>Notes:</b><br>${safeText(customer.notes || "—")}</p>
+    <p style="font-size:11px;color:#85877e">
+      Customer since: ${dateText(customer.created_at)}
+    </p>
+    <button class="soft full" id="editSelectedOrganizationCustomer">
+      Edit Customer
+    </button>
+  `;
+
+  document.getElementById("editSelectedOrganizationCustomer").onclick =
+    () => showOrganizationCustomerForm(customer);
+}
+
+function showOrganizationCustomerForm(customer) {
+  const container = document.getElementById("organizationCustomerDetails");
+
+  if (!container) return;
+
+  const editing = Boolean(customer);
+
+  document.getElementById("organizationCustomerDetailsTitle").textContent =
+    editing ? "Edit Customer" : "Add Customer";
+
+  document.getElementById("organizationCustomerDetailsSubtitle").textContent =
+    "Enter customer information.";
+
+  container.innerHTML = `
+    <form id="organizationCustomerForm">
+      <label class="auth-label">Customer Type</label>
+      <select class="auth-input" id="orgCustomerType" required>
+        <option value="individual">Individual</option>
+        <option value="business">Business</option>
+      </select>
+
+      <label class="auth-label">Customer Name</label>
+      <input class="auth-input" id="orgCustomerName"
+        value="${safeText(customer?.full_name || "")}" required>
+
+      <label class="auth-label">Business Name (if business)</label>
+      <input class="auth-input" id="orgCustomerBusiness"
+        value="${safeText(customer?.business_name || "")}">
+
+      <label class="auth-label">Email</label>
+      <input class="auth-input" id="orgCustomerEmail" type="email"
+        value="${safeText(customer?.email || "")}">
+
+      <label class="auth-label">Phone</label>
+      <input class="auth-input" id="orgCustomerPhone"
+        value="${safeText(customer?.phone || "")}">
+
+      <label class="auth-label">Address</label>
+      <textarea class="auth-input" id="orgCustomerAddress" rows="2">${safeText(customer?.address || "")}</textarea>
+
+      <label class="auth-label">Status</label>
+      <select class="auth-input" id="orgCustomerStatus">
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+
+      <label class="auth-label">Notes</label>
+      <textarea class="auth-input" id="orgCustomerNotes" rows="3">${safeText(customer?.notes || "")}</textarea>
+
+      <button class="soft full" type="submit" style="margin-top:12px">
+        ${editing ? "Save Changes" : "Create Customer"}
+      </button>
+
+      <button class="outline full" type="button" id="cancelOrgCustomerForm"
+        style="margin-top:8px">
+        Cancel
+      </button>
+
+      <p id="orgCustomerFormMessage" class="auth-message" role="status"></p>
+    </form>
+  `;
+
+  document.getElementById("orgCustomerType").value =
+    customer?.customer_type || "individual";
+
+  document.getElementById("orgCustomerStatus").value =
+    customer?.status || "active";
+
+  document.getElementById("cancelOrgCustomerForm").onclick = () => {
+    if (customer) {
+      renderOrganizationCustomerDetails();
+    } else {
+      document.getElementById("organizationCustomerDetailsTitle").textContent =
+        "Customer Details";
+
+      document.getElementById("organizationCustomerDetailsSubtitle").textContent =
+        "Select a customer or add a new one.";
+
+      container.innerHTML = `
+        <p style="color:#85877e">Customer information will appear here.</p>
+      `;
+    }
+  };
+
+  document.getElementById("organizationCustomerForm").onsubmit =
+    async (event) => {
+      event.preventDefault();
+
+      const message = document.getElementById("orgCustomerFormMessage");
+      const submit = event.target.querySelector('[type="submit"]');
+
+      submit.disabled = true;
+      message.textContent = "Saving customer...";
+
+      try {
+        const { data: userResult, error: userError } =
+          await supabase.auth.getUser();
+
+        if (userError) throw userError;
+
+        const user = userResult.user;
+
+        if (!user) throw new Error("Please sign in again.");
+
+        const customerType =
+          document.getElementById("orgCustomerType").value;
+
+        const fullName =
+          document.getElementById("orgCustomerName").value.trim();
+
+        const businessName =
+          document.getElementById("orgCustomerBusiness").value.trim();
+
+        if (!fullName) {
+          throw new Error("Customer name is required.");
+        }
+
+        if (customerType === "business" && !businessName) {
+          throw new Error("Please enter the business name.");
+        }
+
+        const payload = {
+          organization_id: ORG_ID,
+          customer_type: customerType,
+          full_name: fullName,
+          business_name: businessName || null,
+          email: document.getElementById("orgCustomerEmail").value.trim() || null,
+          phone: document.getElementById("orgCustomerPhone").value.trim() || null,
+          address: document.getElementById("orgCustomerAddress").value.trim() || null,
+          status: document.getElementById("orgCustomerStatus").value,
+          notes: document.getElementById("orgCustomerNotes").value.trim() || null,
+        };
+
+        let result;
+
+        if (editing) {
+          result = await supabase
+            .from("organization_customers")
+            .update(payload)
+            .eq("id", customer.id)
+            .eq("organization_id", ORG_ID);
+        } else {
+          payload.created_by = user.id;
+
+          result = await supabase
+            .from("organization_customers")
+            .insert(payload);
+        }
+
+        if (result.error) throw result.error;
+
+        selectedOrganizationCustomerId = customer?.id || null;
+
+        await fetchOrganizationCustomers();
+
+        if (!editing) {
+          const newest = organizationCustomers[0];
+          selectedOrganizationCustomerId = newest?.id || null;
+        }
+
+        renderOrganizationCustomerRows();
+
+        if (selectedOrganizationCustomerId) {
+          renderOrganizationCustomerDetails();
+        } else {
+          showOrganizationCustomerForm(null);
+        }
+
+        notify(editing ? "Customer updated." : "Customer created.");
+      } catch (error) {
+        console.error("Customer save error:", error);
+        message.textContent = error.message || "Could not save customer.";
+        submit.disabled = false;
+      }
+    };
 }
