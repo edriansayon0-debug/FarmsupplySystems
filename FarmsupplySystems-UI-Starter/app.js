@@ -612,9 +612,9 @@ function renderOrderManagement() {
     </section>
   `;
 
-  document.getElementById("backToCustomers").onclick = () => {
-    renderCustomerManagement();
-  };
+  document.getElementById("backToCustomers").onclick = async () => {
+  await loadOrganizationCustomerManagement();
+};
 
   document.getElementById("refreshOrders").onclick = async () => {
     await refreshCustomerData();
