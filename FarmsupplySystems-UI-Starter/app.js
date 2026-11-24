@@ -1104,6 +1104,15 @@ async function loadOrganizationCustomerManagement() {
             placeholder="Search customers..."
             style="max-width:240px;margin:0;padding:9px 11px;border:1px solid #e5e1d8;border-radius:7px;background:#fff;font:12px DM Sans">
 
+<select id="organizationCustomerTypeFilter"
+  style="padding:9px 11px;border:1px solid #e5e1d8;
+  border-radius:7px;background:#fff;font:12px DM Sans">
+
+  <option value="all">Type: All</option>
+  <option value="individual">Individual</option>
+  <option value="business">Business</option>
+</select>
+
           <span class="count" id="organizationCustomerCount">
             Loading...
           </span>
@@ -1161,6 +1170,9 @@ async function loadOrganizationCustomerManagement() {
 
   document.getElementById("organizationCustomerSearch").oninput =
     renderOrganizationCustomerRows;
+  
+  document.getElementById("organizationCustomerTypeFilter").onchange =
+  renderOrganizationCustomerRows;
 
   await fetchOrganizationCustomers();
 
@@ -1206,17 +1218,29 @@ function renderOrganizationCustomerRows() {
 
   if (!tbody || !count || !search) return;
 
-  const term = search.value.trim().toLowerCase();
+const term = search.value.trim().toLowerCase();
 
-  const filtered = organizationCustomers.filter((customer) => {
-    return [
-      customer.full_name,
-      customer.business_name,
-      customer.email,
-      customer.phone,
-      customer.customer_type,
-    ].some((value) => String(value || "").toLowerCase().includes(term));
-  });
+const typeFilter = document.getElementById(
+  "organizationCustomerTypeFilter"
+).value;
+
+const filtered = organizationCustomers.filter((customer) => {
+  const matchesSearch = [
+    customer.full_name,
+    customer.business_name,
+    customer.email,
+    customer.phone,
+    customer.customer_type,
+  ].some((value) =>
+    String(value || "").toLowerCase().includes(term)
+  );
+
+  const matchesType =
+    typeFilter === "all" ||
+    customer.customer_type === typeFilter;
+
+  return matchesSearch && matchesType;
+});
 
   count.textContent = `${filtered.length} customers`;
   tbody.replaceChildren();
