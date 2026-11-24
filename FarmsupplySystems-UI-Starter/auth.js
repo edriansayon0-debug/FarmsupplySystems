@@ -98,8 +98,12 @@ function showCustomer(profile) {
   customerName.textContent = profile.full_name || "Customer";
 
   createCartElements();
-  loadCustomerProducts();
-  renderCart();
+createOrderHistoryElements();
+
+loadCustomerProducts();
+loadCustomerOrderHistory();
+
+renderCart();
 }
 
 function showMessage(message, success = false) {
@@ -386,6 +390,209 @@ async function loadCustomerProducts() {
 
   customerProducts.appendChild(grid);
   renderCart();
+}
+
+async function loadCustomerOrderHistory() {
+  const container = document.getElementById(
+    "customerOrderHistoryList"
+  );
+
+  if (!container || !currentCustomer) return;
+
+  container.textContent = "Loading your orders...";
+
+  try {
+    const { data: orders, error } = await supabase
+      .from("customer_orders")
+      .select(`
+        id,
+        order_number,
+        fulfillment_method,
+        payment_method,
+        subtotal,
+        total_amount,
+        order_status,
+        payment_status,
+        created_at
+      `)
+      .eq("customer_id", currentCustomer.id)
+      .eq("organization_id", ORGANIZATION_ID)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    container.replaceChildren();
+
+    if (!orders || orders.length === 0) {
+      container.textContent = "You have not placed any orders yet.";
+      return;
+    }
+
+    const orderIds = orders.map(order => order.id);
+
+    const { data: orderItems, error: itemsError } =
+      await supabase
+        .from("customer_order_items")
+        .select(`
+          order_id,
+          product_name,
+          quantity,
+          unit_price,
+          subtotal
+        `)
+        .in("order_id", orderIds);
+
+    if (itemsError) throw itemsError;
+
+    const itemsByOrder = new Map();
+
+    (orderItems || []).forEach(item => {
+      if (!itemsByOrder.has(item.order_id)) {
+        itemsByOrder.set(item.order_id, []);
+      }
+
+      itemsByOrder.get(item.order_id).push(item);
+    });
+
+    orders.forEach(order => {
+      const card = document.createElement("article");
+
+      card.style.border = "1px solid #e5e9e5";
+      card.style.borderRadius = "10px";
+      card.style.padding = "15px";
+      card.style.marginBottom = "15px";
+
+      const heading = document.createElement("h3");
+      heading.textContent =
+        order.order_number || order.id;
+
+      heading.style.color = "#1b4332";
+      heading.style.marginTop = "0";
+
+      const date = document.createElement("p");
+      date.textContent =
+        "Date: " +
+        new Date(order.created_at).toLocaleString("en-PH");
+
+      const fulfillment = document.createElement("p");
+      fulfillment.textContent =
+        "Fulfillment: " +
+        (order.fulfillment_method === "pickup"
+          ? "Pay upon Pickup"
+          : "Delivery");
+
+      const payment = document.createElement("p");
+      payment.textContent =
+        "Payment: " +
+        (order.payment_method === "pay_upon_pickup"
+          ? "Pay upon Pickup"
+          : "Cash on Delivery");
+
+      const status = document.createElement("p");
+      status.textContent =
+        "Order Status: " + order.order_status;
+
+      const paymentStatus = document.createElement("p");
+      paymentStatus.textContent =
+        "Payment Status: " + order.payment_status;
+
+      const itemsTitle = document.createElement("strong");
+      itemsTitle.textContent = "Ordered Products";
+
+      const itemList = document.createElement("ul");
+
+      const items = itemsByOrder.get(order.id) || [];
+
+      items.forEach(item => {
+        const listItem = document.createElement("li");
+
+        listItem.textContent =
+          `${item.product_name} × ${item.quantity} — ` +
+          formatMoney(item.subtotal);
+
+        itemList.appendChild(listItem);
+      });
+
+      const total = document.createElement("h3");
+      total.textContent =
+        "Total: " + formatMoney(order.total_amount);
+
+      total.style.color = "#1b4332";
+
+      card.append(
+        heading,
+        date,
+        fulfillment,
+        payment,
+        status,
+        paymentStatus,
+        itemsTitle,
+        itemList,
+        total
+      );
+
+      container.appendChild(card);
+    });
+
+  } catch (error) {
+    console.error("Order history error:", error);
+
+    container.textContent =
+      "Unable to load your order history. Please try again.";
+  }
+}
+
+// ==========================================
+// CUSTOMER ORDER HISTORY
+// ==========================================
+
+function createOrderHistoryElements() {
+  if (document.getElementById("customerOrderHistory")) {
+    return;
+  }
+
+  const section = document.createElement("section");
+  section.id = "customerOrderHistory";
+
+  section.style.background = "#ffffff";
+  section.style.padding = "20px";
+  section.style.border = "1px solid #e5e9e5";
+  section.style.borderRadius = "12px";
+  section.style.margin = "20px 0";
+
+  section.innerHTML = `
+    <div style="
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+    ">
+      <h2 style="margin:0;color:#1b4332">
+        My Order History
+      </h2>
+
+      <button
+        type="button"
+        id="refreshCustomerOrders"
+        class="cart-action-button"
+      >
+        Refresh
+      </button>
+    </div>
+
+    <div id="customerOrderHistoryList" style="margin-top:15px">
+      Loading your orders...
+    </div>
+  `;
+
+  customerProducts.parentElement.insertBefore(
+    section,
+    customerProducts
+  );
+
+  document.getElementById("refreshCustomerOrders")
+    .addEventListener("click", loadCustomerOrderHistory);
 }
 
 // ==========================================
@@ -788,7 +995,8 @@ async function submitCustomerOrder() {
       ". Payment status: Unpaid."
     );
 
-    await loadCustomerProducts();
+   await loadCustomerProducts();
+await loadCustomerOrderHistory();
 
   } catch (error) {
     console.error("Order placement error:", error);
