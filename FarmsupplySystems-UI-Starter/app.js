@@ -1157,11 +1157,14 @@ async function loadOrganizationCustomerManagement() {
     </section>
   `;
 
-  document.getElementById("openOrderManagement").onclick = () => {
-    selectedCustomerId = null;
-    selectedOrderId = null;
-    renderOrderManagement();
-  };
+ document.getElementById("openOrderManagement").onclick = async () => {
+  selectedCustomerId = null;
+  selectedOrderId = null;
+
+  await fetchOrganizationCustomers();
+
+  renderOrderManagement();
+};
 
   document.getElementById("refreshOrganizationCustomers").onclick =
     loadOrganizationCustomerManagement;
