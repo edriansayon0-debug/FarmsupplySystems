@@ -308,10 +308,10 @@ function renderCustomerManagement() {
           <table>
             <thead>
               <tr>
-                <th>CUSTOMER</th>
-                <th>PHONE</th>
-                <th>ORDERS</th>
-                <th>PAID TOTAL</th>
+               <th>CUSTOMER NAME</th>
+               <th>TYPE</th>
+               <th>TOTAL SPENT</th>
+               <th>STATUS</th>
               </tr>
             </thead>
 
@@ -413,7 +413,7 @@ function renderCustomerRows() {
       </td>
 
       <td>
-        ${safeText(customer.phone || "—")}
+  ${money(getCustomerPaidTotal(customer.id))}
       </td>
 
       <td>
