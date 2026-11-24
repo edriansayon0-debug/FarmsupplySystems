@@ -245,7 +245,7 @@ loginForm.addEventListener("submit", async (event) => {
       throw error;
     }
 
-    const success = await loadUserAndOpenScreen(data.user, loginMode);
+    const success = await loadUserAndOpenScreen(data.user);
 
     if (success) {
       loginForm.reset();
@@ -1059,5 +1059,4 @@ forgotPassword.addEventListener("click", async () => {
 // START AUTHENTICATION
 // ==========================================
 
-setLoginMode("admin");
 checkSession();
