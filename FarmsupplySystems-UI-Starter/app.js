@@ -1183,32 +1183,68 @@ async function loadOrganizationCustomerManagement() {
   }
 }
 
-async function fetchOrganizationCustomers() {
-  const { data, error } = await supabase
-    .from("organization_customers")
-    .select(`
-      id,
-      organization_id,
-      customer_type,
-      full_name,
-      business_name,
-      email,
-      phone,
-      address,
-      status,
-      notes,
-      created_at
-    `)
-    .eq("organization_id", ORG_ID)
-    .order("created_at", { ascending: false });
+function getOrganizationCustomerPaidTotal(customer) {
+  if (!customer.auth_user_id) return 0;
 
-  if (error) {
-    console.error("Customer loading error:", error);
-    notify("Unable to load customers: " + error.message);
+  return orders
+    .filter((order) => {
+      return (
+        order.customer_id === customer.auth_user_id &&
+        order.payment_status === "paid"
+      );
+    })
+    .reduce((total, order) => {
+      return total + Number(order.total_amount || 0);
+    }, 0);
+}
+
+async function fetchOrganizationCustomers() {
+  const { data: customerData, error: customerError } =
+    await supabase
+      .from("organization_customers")
+      .select(`
+        id,
+        organization_id,
+        auth_user_id,
+        customer_type,
+        full_name,
+        business_name,
+        email,
+        phone,
+        address,
+        status,
+        notes,
+        created_at
+      `)
+      .eq("organization_id", ORG_ID)
+      .order("created_at", { ascending: false });
+
+  if (customerError) {
+    console.error("Customer loading error:", customerError);
+    notify("Unable to load customers: " + customerError.message);
     return;
   }
 
-  organizationCustomers = data || [];
+  const { data: orderData, error: orderError } =
+    await supabase
+      .from("customer_orders")
+      .select(`
+        id,
+        customer_id,
+        total_amount,
+        payment_status,
+        order_status
+      `)
+      .eq("organization_id", ORG_ID);
+
+  if (orderError) {
+    console.error("Order loading error:", orderError);
+    notify("Unable to load customer orders: " + orderError.message);
+    return;
+  }
+
+  organizationCustomers = customerData || [];
+  orders = orderData || [];
 }
 
 function renderOrganizationCustomerRows() {
@@ -1265,7 +1301,7 @@ row.innerHTML = `
   <td class="ref">${safeText(customer.id.slice(0, 8).toUpperCase())}</td>
   <td>${safeText(customer.business_name || customer.full_name)}</td>
   <td>${safeText(customer.customer_type)}</td>
-  <td>${money(getCustomerPaidTotal(customer.id))}</td>
+  <td>${money(getOrganizationCustomerPaidTotal(customer))}</td>
   <td>
     <span class="${customer.status === "active" ? "tag" : "pending"}">
       ${safeText(customer.status)}
