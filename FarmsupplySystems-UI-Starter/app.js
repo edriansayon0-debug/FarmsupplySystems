@@ -198,7 +198,11 @@ async function loadCustomerAndOrderData() {
   customer_id,
   total_amount,
   payment_status,
-  order_status
+  order_status,
+  fulfillment_method,
+  payment_method,
+  delivery_address,
+  customer_notes
 `)
       .eq("organization_id", ORG_ID)
       .order("created_at", { ascending: false }),
@@ -675,9 +679,9 @@ function renderOrderRows() {
 
       <td>
     ${
-    order.created_at && !isNaN(new Date(order.created_at).getTime())
-      ? new Date(order.created_at).toLocaleDateString("en-PH")
-      : "Date not available" }
+   order.created_at
+  ? new Date(order.created_at).toLocaleDateString("en-PH")
+  : "Date not available" }
       </td>
 
       <td>
@@ -1240,8 +1244,18 @@ async function fetchOrganizationCustomers() {
     return;
   }
 
-  organizationCustomers = customerData || [];
-  orders = orderData || [];
+ organizationCustomers = customerData || [];
+
+customers = organizationCustomers
+  .filter((customer) => customer.auth_user_id)
+  .map((customer) => ({
+    id: customer.auth_user_id,
+    full_name:
+      customer.business_name || customer.full_name || "Customer",
+    phone: customer.phone,
+  }));
+
+orders = orderData || [];
 }
 
 function renderOrganizationCustomerRows() {
