@@ -191,21 +191,15 @@ async function loadCustomerAndOrderData() {
 
     supabase
       .from("customer_orders")
-      .select(`
-        id,
-        customer_id,
-        order_number,
-        fulfillment_method,
-        payment_method,
-        delivery_address,
-        customer_notes,
-        subtotal,
-        total_amount,
-        order_status,
-        payment_status,
-        created_at,
-        updated_at
-      `)
+.select(`
+  id,
+  order_number,
+  created_at,
+  customer_id,
+  total_amount,
+  payment_status,
+  order_status
+`)
       .eq("organization_id", ORG_ID)
       .order("created_at", { ascending: false }),
   ]);
