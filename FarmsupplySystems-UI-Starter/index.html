@@ -109,6 +109,7 @@
 <div class="toast" id="toast"></div>
 
 
+
 <!-- LOGIN SCREEN -->
 <section class="auth-screen" id="authScreen">
   <form class="auth-card" id="loginForm">
@@ -124,51 +125,66 @@
     <p class="auth-kicker">SECURE ACCOUNT ACCESS</p>
 
     <h1 id="loginTitle">Welcome back</h1>
-    <p class="auth-description" id="loginDescription">
-      Sign in to your administrator account.
-    </p>
 
-    <div style="display:flex;gap:10px;margin-bottom:20px">
-      <button type="button" id="adminLoginTab"
-        class="auth-submit" style="flex:1">
-        Administrator
-      </button>
-      <button type="button" id="customerLoginTab"
-        class="auth-submit" style="flex:1;background:#e8eee9;color:#1b4332">
-        Customer
-      </button>
-    </div>
+    <p class="auth-description" id="loginDescription">
+      Sign in to access your account.
+    </p>
 
     <label class="auth-label" for="loginEmail">
       Email address
     </label>
-    <input class="auth-input" id="loginEmail"
-      type="email" placeholder="Enter your email"
-      autocomplete="username" required>
+
+    <input
+      class="auth-input"
+      id="loginEmail"
+      type="email"
+      placeholder="Enter your email"
+      autocomplete="username"
+      required
+    >
 
     <label class="auth-label" for="loginPassword">
       Password
     </label>
-    <input class="auth-input" id="loginPassword"
-      type="password" placeholder="Enter your password"
-      autocomplete="current-password" required>
 
-    <button class="auth-submit" id="loginSubmit" type="submit">
+    <input
+      class="auth-input"
+      id="loginPassword"
+      type="password"
+      placeholder="Enter your password"
+      autocomplete="current-password"
+      required
+    >
+
+    <button
+      class="auth-submit"
+      id="loginSubmit"
+      type="submit"
+    >
       Sign in
     </button>
 
-    <button class="auth-forgot" id="forgotPassword" type="button">
+    <button
+      class="auth-forgot"
+      id="forgotPassword"
+      type="button"
+    >
       Forgot password?
     </button>
 
-    <p class="auth-message" id="authMessage" role="status"></p>
+    <p
+      class="auth-message"
+      id="authMessage"
+      role="status"
+    ></p>
 
     <p class="auth-foot" id="loginFooter">
-      Access is limited to authorized S.T.P.B personnel.
+      Secure access for S.T.P.B account holders.
     </p>
 
   </form>
 </section>
+
 
 <!-- CUSTOMER SCREEN -->
 <section id="customerScreen" style="display:none;min-height:100vh;background:#f5f7f4;padding:25px">
