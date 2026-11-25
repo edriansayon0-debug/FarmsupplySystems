@@ -205,3 +205,7 @@
 .reports-panel[hidden]{display:none!important}
 @media(max-width:900px){.reports-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.reports-heading h2{font-size:21px}}
 @media(max-width:560px){.reports-heading{align-items:flex-start;flex-direction:column}.reports-export{width:100%}.reports-kpis{grid-template-columns:1fr 1fr!important;gap:8px}.reports-kpis .stat{padding:12px}.reports-kpis .stat strong{font-size:18px}.reports-panel{padding:12px}.reports-panel .panelhead{align-items:flex-start;flex-direction:column}.reports-sales-chart{height:155px;gap:5px}.reports-chart-column b{font-size:7px}.reports-footer{align-items:flex-start;flex-direction:column}}
+
+/* Reports top performer KPI */
+.reports-top-performer strong{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px!important;color:#2d6a4f!important}
+.reports-top-performer small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
