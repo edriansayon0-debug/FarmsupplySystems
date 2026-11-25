@@ -238,3 +238,55 @@
 .inventory-footnote{margin:14px 0 0;color:#929a91;font-size:10px;line-height:1.5}
 @media(max-width:900px){.inventory-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.inventory-heading{align-items:flex-start;flex-direction:column}.inventory-heading .reports-refresh{width:100%}.inventory-kpis{gap:8px}.inventory-kpis .stat{padding:12px}.inventory-kpis .stat strong{font-size:18px}.inventory-table-panel{padding:12px}.inventory-toolbar{flex-direction:column}.inventory-toolbar select{width:100%}}
+
+
+/* INVENTORY — FIGMA WAREHOUSE & STOCK OPERATIONS */
+.inventory-bi-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 16px}
+.inventory-bi-heading h2{margin:3px 0 4px;color:#1d2b22;font-family:Outfit,sans-serif;font-size:23px;letter-spacing:-.4px}
+.inventory-bi-heading p{margin:0;color:#899188;font-size:11px}
+.inventory-bi-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.inventory-bi-kpis .stat{min-width:0;border:1px solid #e8e7df;border-radius:9px;background:#fff;padding:13px 15px;box-shadow:0 2px 8px rgba(24,60,44,.025)}
+.inventory-bi-kpis .stat>div{color:#7b857c;font-size:9px;text-transform:uppercase;letter-spacing:.35px}
+.inventory-bi-kpis .stat strong{display:block;margin:8px 0 5px;color:#1d2921;font-size:23px;line-height:1.1}
+.inventory-bi-kpis .stat:nth-child(2) strong{color:#2d6a4f}
+.inventory-bi-kpis .stat:nth-child(3) strong{color:#bd831c}
+.inventory-bi-kpis .stat:nth-child(4) strong{color:#c84f48}
+.inventory-bi-kpis .stat small{color:#929a91;font-size:8px}
+.inventory-bi-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(265px,.9fr);align-items:start;gap:12px}
+.inventory-ledger,.inventory-stock-link,.inventory-adjust-card{min-width:0;border:1px solid #e8e7df;border-radius:9px;background:#fff;box-shadow:0 2px 8px rgba(24,60,44,.025)}
+.inventory-ledger{padding:14px}
+.inventory-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.inventory-section-heading h3{margin:0 0 4px;color:#26372c;font-size:12px}
+.inventory-section-heading p{margin:0;color:#8b948b;font-size:9px}
+.inventory-section-heading>span{color:#7e897f;font-size:9px;white-space:nowrap}
+.inventory-ledger-tools{display:flex;gap:8px;margin-bottom:10px}
+.inventory-ledger-tools input,.inventory-ledger-tools select{min-width:0;border:1px solid #e5e6de;border-radius:5px;background:#f8f8f4;padding:8px 9px;color:#566257;font-size:9px}
+.inventory-ledger-tools input{flex:1}
+.inventory-ledger-tools select{width:130px}
+.inventory-ledger .tablewrap{max-height:470px;overflow:auto}
+.inventory-ledger table{width:100%;border-collapse:collapse;font-size:9px}
+.inventory-ledger thead{position:sticky;top:0;z-index:1;background:#f5f6f0}
+.inventory-ledger th{padding:10px 8px;color:#788278;font-size:8px;font-weight:700;text-align:left;white-space:nowrap}
+.inventory-ledger td{padding:10px 8px;border-bottom:1px solid #eff0e9;color:#566257;vertical-align:middle}
+.inventory-ledger td strong{color:#34453a;font-weight:600}
+.inventory-ledger-row.low{background:#fffaf0}
+.inventory-ledger-row.out{background:#fff5f4}
+.inventory-status{display:inline-block;border-radius:20px;padding:4px 8px;font-size:8px;font-weight:700;white-space:nowrap}
+.inventory-status.in{background:#e8f5ec;color:#2d7650}
+.inventory-status.low{background:#fff0d5;color:#a16b12}
+.inventory-status.out{background:#fde7e5;color:#b5473d}
+.inventory-ledger-note{margin:12px 0 0;color:#969e95;font-size:9px;line-height:1.45}
+.inventory-adjust-column{display:grid;gap:10px;min-width:0}
+.inventory-stock-link{padding:7px}
+.inventory-stock-link button{width:100%;border:0;border-radius:6px;background:#2d6a4f;padding:10px 12px;color:#fff;font-size:10px;font-weight:700;cursor:pointer}
+.inventory-stock-link button:hover,.inventory-adjust-submit:hover{background:#1b4332}
+.inventory-adjust-card{padding:14px}
+.inventory-adjust-card .inventory-section-heading{margin-bottom:13px}
+.inventory-adjust-card form{display:grid;gap:10px}
+.inventory-adjust-card label{display:grid;gap:5px;color:#59665b;font-size:9px;font-weight:600}
+.inventory-adjust-card input,.inventory-adjust-card select,.inventory-adjust-card textarea{width:100%;min-width:0;border:1px solid #e6e6de;border-radius:5px;background:#f7f7f2;padding:8px 9px;color:#4f5b51;font:inherit;font-size:9px;font-weight:400;box-sizing:border-box}
+.inventory-adjust-card textarea{resize:vertical;min-height:54px}
+.inventory-adjust-submit{border:0;border-radius:6px;background:#2d6a4f;padding:10px 12px;color:#fff;font-size:10px;font-weight:700;cursor:pointer}
+.inventory-adjust-safety{margin:0;color:#8b948b;font-size:8px;line-height:1.45}
+@media(max-width:980px){.inventory-bi-layout{grid-template-columns:minmax(0,1fr)}.inventory-adjust-column{grid-template-columns:minmax(0,1fr)}.inventory-ledger .tablewrap{max-height:390px}}
+@media(max-width:650px){.inventory-bi-heading{align-items:flex-start;flex-direction:column}.inventory-bi-heading .reports-refresh{width:100%}.inventory-bi-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-bi-kpis .stat{padding:11px}.inventory-bi-kpis .stat strong{font-size:19px}.inventory-ledger{padding:10px}.inventory-ledger-tools{flex-direction:column}.inventory-ledger-tools select{width:100%}.inventory-ledger .tablewrap{max-height:420px}.inventory-adjust-card{padding:12px}}
