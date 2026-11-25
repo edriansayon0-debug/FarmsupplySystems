@@ -405,23 +405,23 @@ function renderCustomerRows() {
       row.style.background = "#e8f5eb";
     }
 
-    row.innerHTML = `
-      <td class="ref">
-        ${safeText(customer.full_name || "Customer")}
-      </td>
+row.innerHTML = `
+  <td class="ref">
+    ${safeText(customer.full_name || "Customer")}
+  </td>
 
-      <td>
-  ${money(getCustomerPaidTotal(customer.id))}
-      </td>
+  <td>
+    Customer
+  </td>
 
-      <td>
-        ${customerOrders.length}
-      </td>
+  <td>
+    ${money(getCustomerPaidTotal(customer.id))}
+  </td>
 
-      <td>
-        ${money(getCustomerPaidTotal(customer.id))}
-      </td>
-    `;
+  <td>
+    ${customerOrders.length ? "Active" : "No Orders"}
+  </td>
+`;
 
     row.addEventListener("click", () => {
       selectedCustomerId = customer.id;
