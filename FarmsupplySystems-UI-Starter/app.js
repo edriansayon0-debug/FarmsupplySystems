@@ -176,8 +176,8 @@ async function renderReportsPage() {
     "<section class='grid reports-kpis' style='grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px'>" +
       "<article class='card stat'><div>Paid Sales <span class='ico green'>₱</span></div><strong id='reportPaidSales'>Loading...</strong><small>Paid, non-cancelled orders</small></article>" +
       "<article class='card stat'><div>Orders <span class='ico blue'>▤</span></div><strong id='reportOrderCount'>—</strong><small>Orders in selected period</small></article>" +
-      "<article class='card stat'><div>Inventory Value <span class='ico gold'>▣</span></div><strong id='reportInventoryValue'>—</strong><small>Current retail value of active stock</small></article>" +
-      "<article class='card stat'><div>Active Products <span class='ico green'>▣</span></div><strong id='reportProductCount'>—</strong><small>Available products in catalog</small></article>" +
+      "<article class='card stat'><div>Average Order Value <span class='ico gold'>↗</span></div><strong id='reportAverageOrder'>—</strong><small>Paid sales per paid order</small></article>" +
+      "<article class='card stat reports-top-performer'><div>Top Performer <span class='ico green'>★</span></div><strong id='reportTopProduct'>Loading...</strong><small id='reportTopProductSales'>Highest sales by product</small></article>" +
     "</section>" +
     "<section class='card panel reports-panel' data-report-panel='sales' style='margin-bottom:16px'>" +
       "<div class='panelhead'><div><h3>Monthly Sales Report</h3><p>Paid order totals by month</p></div>" +
@@ -207,14 +207,45 @@ async function renderReportsPage() {
       order.payment_status === "paid" &&
       !["cancelled", "rejected"].includes(order.order_status)
     );
-    const inventoryValue = products.reduce((sum, product) =>
-      sum + Number(product.price || 0) * Number(product.stock_quantity || 0), 0);
+    const paidSalesTotal = paid.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+    document.getElementById("reportPaidSales").textContent = money(paidSalesTotal);
+    document.getElementById("reportAverageOrder").textContent =
+      money(paid.length ? paidSalesTotal / paid.length : 0);
 
-    document.getElementById("reportPaidSales").textContent =
-      money(paid.reduce((sum, order) => sum + Number(order.total_amount || 0), 0));
-    document.getElementById("reportInventoryValue").textContent = money(inventoryValue);
-    const productCount = document.getElementById("reportProductCount");
-    if (productCount) productCount.textContent = products.length.toLocaleString("en-PH");
+    const topName = document.getElementById("reportTopProduct");
+    const topSales = document.getElementById("reportTopProductSales");
+    if (paid.length) {
+      const { data: soldItems, error: soldItemsError } = await supabase
+        .from("customer_order_items")
+        .select("order_id, product_name, quantity, subtotal")
+        .in("order_id", paid.map(order => order.id))
+        .limit(10000);
+      if (soldItemsError) {
+        console.warn("Top performer report could not load order items:", soldItemsError);
+        topName.textContent = "Unavailable";
+        topSales.textContent = "Could not load item sales";
+      } else {
+        const productSales = {};
+        (soldItems || []).forEach(item => {
+          const name = item.product_name || "Unnamed product";
+          if (!productSales[name]) productSales[name] = { revenue: 0, quantity: 0 };
+          productSales[name].revenue += Number(item.subtotal || 0);
+          productSales[name].quantity += Number(item.quantity || 0);
+        });
+        const top = Object.entries(productSales).sort((x, y) => y[1].revenue - x[1].revenue)[0];
+        if (top) {
+          topName.textContent = top[0];
+          topName.title = top[0];
+          topSales.textContent = money(top[1].revenue) + " sales · " + top[1].quantity + " sold";
+        } else {
+          topName.textContent = "No sales yet";
+          topSales.textContent = "No item sales recorded";
+        }
+      }
+    } else {
+      topName.textContent = "No sales yet";
+      topSales.textContent = "No paid orders recorded";
+    }
 
     function drawMonthlyRows() {
       const months = Number(period.value || 6);
