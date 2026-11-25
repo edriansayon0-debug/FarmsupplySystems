@@ -3,3 +3,4 @@
 2026-11-25 — Added repository work diary and agent instructions to support a one-line change log.
 2026-11-25 — Created root `agents.md` with instructions to read and append to this diary; commit `7cc7441be9d7b5ad2f6381eb0e3c8a2799990e9b`.
 2026-11-25 — User confirmed Step 5 Order Management refresh, selection retention, details, and return-to-customers checks all passed.
+2026-11-25 — User confirmed Step 6 test order status and payment actions work correctly.
