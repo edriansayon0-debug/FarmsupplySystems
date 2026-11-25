@@ -177,16 +177,20 @@ async function renderReportsPage() {
       "<article class='card stat'><div>Paid Sales <span class='ico green'>₱</span></div><strong id='reportPaidSales'>Loading...</strong><small>Paid, non-cancelled orders</small></article>" +
       "<article class='card stat'><div>Orders <span class='ico blue'>▤</span></div><strong id='reportOrderCount'>—</strong><small>Orders in selected period</small></article>" +
       "<article class='card stat'><div>Inventory Value <span class='ico gold'>▣</span></div><strong id='reportInventoryValue'>—</strong><small>Current retail value of active stock</small></article>" +
+      "<article class='card stat'><div>Active Products <span class='ico green'>▣</span></div><strong id='reportProductCount'>—</strong><small>Available products in catalog</small></article>" +
     "</section>" +
-    "<section class='card panel' style='margin-bottom:16px'>" +
+    "<section class='card panel reports-panel' data-report-panel='sales' style='margin-bottom:16px'>" +
       "<div class='panelhead'><div><h3>Monthly Sales Report</h3><p>Paid order totals by month</p></div>" +
       "<select id='reportPeriod'><option value='6'>Last 6 months</option><option value='12'>Last 12 months</option></select></div>" +
       "<div class='tablewrap'><table><thead><tr><th>MONTH</th><th>ORDERS</th><th>PAID SALES</th></tr></thead><tbody id='reportSalesRows'><tr><td colspan='3'>Loading report...</td></tr></tbody></table></div>" +
     "</section>" +
-    "<section class='card panel'>" +
+    "<section class='card panel reports-panel' data-report-panel='inventory'>" +
       "<div class='panelhead'><div><h3>Inventory &amp; Reorder Report</h3><p>Active products with 10 or fewer units</p></div><span class='count' id='reportStockCount'>—</span></div>" +
       "<div class='tablewrap'><table><thead><tr><th>PRODUCT</th><th>SKU</th><th>STOCK</th><th>UNIT</th><th>STOCK VALUE</th></tr></thead><tbody id='reportStockRows'><tr><td colspan='5'>Loading inventory...</td></tr></tbody></table></div>" +
-    "</section><button class='soft' id='reportRefresh' style='margin-top:14px'>↻ Refresh Reports</button>";
+    "</section>" +
+    "<section class='card panel reports-panel' data-report-panel='products' hidden><div class='panelhead'><div><h3>Product Performance</h3><p>Top products by current stock value</p></div></div><div class='tablewrap'><table><thead><tr><th>PRODUCT</th><th>SKU</th><th>PRICE</th><th>STOCK</th><th>STOCK VALUE</th></tr></thead><tbody id='reportProductRows'></tbody></table></div></section>" +
+    "<section class='card panel reports-panel' data-report-panel='customers' hidden><div class='panelhead'><div><h3>Customer Insights</h3><p>Order activity in the selected period (customer IDs masked)</p></div></div><div class='tablewrap'><table><thead><tr><th>CUSTOMER</th><th>ORDERS</th><th>ORDER TOTAL</th><th>PAID SALES</th></tr></thead><tbody id='reportCustomerRows'></tbody></table></div></section>" +
+    "<button class='soft' id='reportRefresh' style='margin-top:14px'>↻ Refresh Reports</button>";
 
   const period = document.getElementById("reportPeriod");
   const refresh = document.getElementById("reportRefresh");
@@ -254,6 +258,30 @@ async function renderReportsPage() {
         }).join("")
       : "<tr><td colspan='5'>No products need restocking.</td></tr>";
 
+    const topProducts = products.slice().sort((x, y) =>
+      Number(y.price || 0) * Number(y.stock_quantity || 0) -
+      Number(x.price || 0) * Number(x.stock_quantity || 0)).slice(0, 15);
+    document.getElementById("reportProductRows").innerHTML = topProducts.map(product =>
+      "<tr><td>" + safeText(product.product_name || "Product") + "</td><td>" +
+      safeText(product.product_code || "—") + "</td><td>" + safeText(money(product.price)) +
+      "</td><td>" + Number(product.stock_quantity || 0) + " " + safeText(product.unit || "") +
+      "</td><td>" + safeText(money(Number(product.price || 0) * Number(product.stock_quantity || 0))) +
+      "</td></tr>").join("");
+    const customerSummary = {};
+    orders.forEach(order => {
+      const id = order.customer_id || "Unknown";
+      if (!customerSummary[id]) customerSummary[id] = { count: 0, total: 0, paid: 0 };
+      customerSummary[id].count++;
+      customerSummary[id].total += Number(order.total_amount || 0);
+      if (order.payment_status === "paid" && !["cancelled", "rejected"].includes(order.order_status))
+        customerSummary[id].paid += Number(order.total_amount || 0);
+    });
+    document.getElementById("reportCustomerRows").innerHTML =
+      Object.entries(customerSummary).sort((x, y) => y[1].total - x[1].total).slice(0, 20).map(([id, row]) =>
+        "<tr><td>" + safeText(id === "Unknown" ? id : id.slice(0, 8) + "…") +
+        "</td><td>" + row.count + "</td><td>" + safeText(money(row.total)) +
+        "</td><td>" + safeText(money(row.paid)) + "</td></tr>").join("") ||
+      "<tr><td colspan='4'>No customer orders found.</td></tr>";
     document.querySelectorAll("[data-report-tab]").forEach(tab => {
       tab.onclick = () => {
         document.querySelectorAll("[data-report-tab]").forEach(item => item.classList.toggle("active", item === tab));
