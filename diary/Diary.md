@@ -5,3 +5,4 @@
 2026-11-25 — User confirmed Step 5 Order Management refresh, selection retention, details, and return-to-customers checks all passed.
 2026-11-25 — User confirmed Step 6 test order status and payment actions work correctly.
 2026-11-25 — User confirmed Step 7 end-to-end customer ordering, admin order management, status visibility, and inventory workflow tests passed.
+2026-11-25 — User confirmed Step 8 inventory validation and order management checks work correctly, including stock-limit warning and closed/cancelled order behavior.
