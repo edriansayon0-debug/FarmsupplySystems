@@ -171,7 +171,9 @@ document.getElementById("menu").onclick = () => {
 
 async function renderReportsPage() {
   content.innerHTML =
-    "<section class='grid' style='grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px'>" +
+    "<div class='reports-heading'><div><span class='reports-kicker'>BUSINESS INTELLIGENCE</span><h2>Reports &amp; Analytics</h2><p>Live performance overview for Farm Supplies &amp; Equipment</p></div><button class='reports-export' id='reportExport'>Export Report ↓</button></div>" +
+    "<nav class='reports-tabs'><button class='reports-tab active' data-report-tab='sales'>Sales Reports</button><button class='reports-tab' data-report-tab='inventory'>Inventory Reports</button><button class='reports-tab' data-report-tab='products'>Product Performance</button><button class='reports-tab' data-report-tab='customers'>Customer Insights</button></nav>" +
+    "<section class='grid reports-kpis' style='grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:16px'>" +
       "<article class='card stat'><div>Paid Sales <span class='ico green'>₱</span></div><strong id='reportPaidSales'>Loading...</strong><small>Paid, non-cancelled orders</small></article>" +
       "<article class='card stat'><div>Orders <span class='ico blue'>▤</span></div><strong id='reportOrderCount'>—</strong><small>Orders in selected period</small></article>" +
       "<article class='card stat'><div>Inventory Value <span class='ico gold'>▣</span></div><strong id='reportInventoryValue'>—</strong><small>Current retail value of active stock</small></article>" +
@@ -207,6 +209,8 @@ async function renderReportsPage() {
     document.getElementById("reportPaidSales").textContent =
       money(paid.reduce((sum, order) => sum + Number(order.total_amount || 0), 0));
     document.getElementById("reportInventoryValue").textContent = money(inventoryValue);
+    const productCount = document.getElementById("reportProductCount");
+    if (productCount) productCount.textContent = products.length.toLocaleString("en-PH");
 
     function drawMonthlyRows() {
       const months = Number(period.value || 6);
@@ -250,6 +254,32 @@ async function renderReportsPage() {
         }).join("")
       : "<tr><td colspan='5'>No products need restocking.</td></tr>";
 
+    document.querySelectorAll("[data-report-tab]").forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll("[data-report-tab]").forEach(item => item.classList.toggle("active", item === tab));
+        document.querySelectorAll("[data-report-panel]").forEach(panel => {
+          panel.hidden = panel.dataset.reportPanel !== tab.dataset.reportTab;
+        });
+      };
+    });
+    const exportButton = document.getElementById("reportExport");
+    if (exportButton) exportButton.onclick = () => {
+      const rows = [["Month", "Paid Orders", "Paid Sales"]];
+      const months = Number(period.value || 6);
+      const now = new Date();
+      for (let offset = months - 1; offset >= 0; offset--) {
+        const from = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+        const to = new Date(now.getFullYear(), now.getMonth() - offset + 1, 1);
+        const monthOrders = paid.filter(order => new Date(order.created_at) >= from && new Date(order.created_at) < to);
+        rows.push([from.toLocaleDateString("en-PH", {month:"long",year:"numeric"}), monthOrders.length,
+          monthOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0).toFixed(2)]);
+      }
+      const csv = rows.map(row => row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(",")).join("\\r\\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a"); link.href = url; link.download = "farm-supplies-sales-report.csv"; link.click();
+      URL.revokeObjectURL(url);
+    };
     drawMonthlyRows();
     period.onchange = drawMonthlyRows;
     refresh.onclick = () => renderReportsPage();
