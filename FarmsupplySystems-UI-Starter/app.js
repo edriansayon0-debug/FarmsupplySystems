@@ -95,7 +95,82 @@ function statusClass(status) {
 function navigate(page) {
   if (!labels[page]) return;
 
-  document.querySelectorAll(".nav").forEach((nav) => {
+  
+async function renderInventoryPage() {
+  content.innerHTML =
+    "<div class='inventory-heading'><div><span class='reports-kicker'>STOCK CONTROL</span><h2>Inventory Overview</h2><p>Current active product stock for Farm Supplies &amp; Equipment</p></div><button class='reports-refresh' id='inventoryRefresh'>↻ Refresh Inventory</button></div>" +
+    "<section class='grid inventory-kpis'>" +
+      "<article class='card stat'><div>Total Products</div><strong id='inventoryTotalProducts'>—</strong><small>Active catalog items</small></article>" +
+      "<article class='card stat'><div>In Stock</div><strong id='inventoryInStock'>—</strong><small>More than 10 units</small></article>" +
+      "<article class='card stat'><div>Low Stock</div><strong id='inventoryLowStock'>—</strong><small>1–10 units remaining</small></article>" +
+      "<article class='card stat'><div>Out of Stock</div><strong id='inventoryOutStock'>—</strong><small>Stock quantity is zero</small></article>" +
+    "</section>" +
+    "<section class='card panel inventory-table-panel'><div class='inventory-toolbar'><input id='inventorySearch' type='search' placeholder='Search product name or SKU...' aria-label='Search inventory'><select id='inventoryFilter' aria-label='Filter stock status'><option value='all'>All stock statuses</option><option value='in'>In stock</option><option value='low'>Low stock</option><option value='out'>Out of stock</option></select></div>" +
+    "<div class='tablewrap'><table><thead><tr><th>PRODUCT</th><th>SKU</th><th>STOCK</th><th>UNIT</th><th>UNIT PRICE</th><th>STOCK VALUE</th><th>STATUS</th></tr></thead><tbody id='inventoryRows'><tr><td colspan='7'>Loading inventory...</td></tr></tbody></table></div><p class='inventory-footnote'>This view displays current product quantities from Supabase. Stock adjustment tools will be added after the quantity data is verified.</p></section>";
+
+  const refreshButton = document.getElementById("inventoryRefresh");
+  const searchInput = document.getElementById("inventorySearch");
+  const filterSelect = document.getElementById("inventoryFilter");
+  let products = [];
+
+  const stockType = product => {
+    const qty = Number(product.stock_quantity || 0);
+    return qty <= 0 ? "out" : qty <= 10 ? "low" : "in";
+  };
+  const statusLabel = type => type === "out" ? "Out of Stock" : type === "low" ? "Low Stock" : "In Stock";
+
+  function drawInventoryRows() {
+    const query = searchInput.value.trim().toLowerCase();
+    const filter = filterSelect.value;
+    const filtered = products.filter(product => {
+      const matchesQuery = (product.product_name || "").toLowerCase().includes(query) ||
+        (product.product_code || "").toLowerCase().includes(query);
+      return matchesQuery && (filter === "all" || stockType(product) === filter);
+    });
+    document.getElementById("inventoryRows").innerHTML = filtered.length
+      ? filtered.map(product => {
+          const type = stockType(product);
+          const qty = Number(product.stock_quantity || 0);
+          return "<tr><td><strong>" + safeText(product.product_name || "Unnamed product") + "</strong></td><td>" +
+            safeText(product.product_code || "—") + "</td><td><strong>" + qty.toLocaleString("en-PH") +
+            "</strong></td><td>" + safeText(product.unit || "Unit") + "</td><td>" + safeText(money(product.price)) +
+            "</td><td>" + safeText(money(Number(product.price || 0) * qty)) +
+            "</td><td><span class='inventory-status " + type + "'>" + statusLabel(type) + "</span></td></tr>";
+        }).join("")
+      : "<tr><td colspan='7'>No products match your search.</td></tr>";
+  }
+
+  async function loadInventory() {
+    refreshButton.disabled = true;
+    refreshButton.textContent = "Loading...";
+    try {
+      products = await fetchDashboardProducts();
+      const total = products.length;
+      const low = products.filter(product => stockType(product) === "low").length;
+      const out = products.filter(product => stockType(product) === "out").length;
+      document.getElementById("inventoryTotalProducts").textContent = total.toLocaleString("en-PH");
+      document.getElementById("inventoryInStock").textContent = (total - low - out).toLocaleString("en-PH");
+      document.getElementById("inventoryLowStock").textContent = low.toLocaleString("en-PH");
+      document.getElementById("inventoryOutStock").textContent = out.toLocaleString("en-PH");
+      drawInventoryRows();
+    } catch (error) {
+      console.error("Inventory loading error:", error);
+      document.getElementById("inventoryRows").innerHTML =
+        "<tr><td colspan='7'>Unable to load inventory. Please refresh or check your connection.</td></tr>";
+      notify("Unable to load inventory: " + (error.message || "Unknown error"));
+    } finally {
+      refreshButton.disabled = false;
+      refreshButton.textContent = "↻ Refresh Inventory";
+    }
+  }
+
+  searchInput.addEventListener("input", drawInventoryRows);
+  filterSelect.addEventListener("change", drawInventoryRows);
+  refreshButton.onclick = loadInventory;
+  await loadInventory();
+}
+
+document.querySelectorAll(".nav").forEach((nav) => {
     nav.classList.toggle("active", nav.dataset.page === page);
   });
 
@@ -104,6 +179,13 @@ function navigate(page) {
   if (page === "dashboard") {
     location.hash = "";
     location.reload();
+    return;
+  }
+
+  if (page === "inventory") {
+    location.hash = "inventory";
+    document.getElementById("sidebar").classList.remove("open");
+    renderInventoryPage();
     return;
   }
 
