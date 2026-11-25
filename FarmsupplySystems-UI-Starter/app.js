@@ -490,7 +490,7 @@ async function fetchDashboardProducts() {
   let rows = [];
   for (let from = 0; ; from += size) {
     const { data, error } = await supabase.from("products")
-      .select("id, product_code, product_name, price, stock_quantity, unit")
+      .select("id, product_code, product_name, category, price, stock_quantity, unit")
       .eq("organization_id", ORG_ID).eq("is_active", true)
       .order("stock_quantity", { ascending: true })
       .range(from, from + size - 1);
