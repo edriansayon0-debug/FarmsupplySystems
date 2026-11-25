@@ -107,6 +107,13 @@ function navigate(page) {
     return;
   }
 
+  if (page === "reports") {
+    location.hash = "reports";
+    document.getElementById("sidebar").classList.remove("open");
+    renderReportsPage();
+    return;
+  }
+
   if (page === "customers") {
     location.hash = "customers";
 
@@ -160,6 +167,102 @@ document.getElementById("menu").onclick = () => {
   document.getElementById("sidebar").classList.toggle("open");
 };
 
+
+
+async function renderReportsPage() {
+  content.innerHTML =
+    "<section class='grid' style='grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:16px'>" +
+      "<article class='card stat'><div>Paid Sales <span class='ico green'>₱</span></div><strong id='reportPaidSales'>Loading...</strong><small>Paid, non-cancelled orders</small></article>" +
+      "<article class='card stat'><div>Orders <span class='ico blue'>▤</span></div><strong id='reportOrderCount'>—</strong><small>Orders in selected period</small></article>" +
+      "<article class='card stat'><div>Inventory Value <span class='ico gold'>▣</span></div><strong id='reportInventoryValue'>—</strong><small>Current retail value of active stock</small></article>" +
+    "</section>" +
+    "<section class='card panel' style='margin-bottom:16px'>" +
+      "<div class='panelhead'><div><h3>Monthly Sales Report</h3><p>Paid order totals by month</p></div>" +
+      "<select id='reportPeriod'><option value='6'>Last 6 months</option><option value='12'>Last 12 months</option></select></div>" +
+      "<div class='tablewrap'><table><thead><tr><th>MONTH</th><th>ORDERS</th><th>PAID SALES</th></tr></thead><tbody id='reportSalesRows'><tr><td colspan='3'>Loading report...</td></tr></tbody></table></div>" +
+    "</section>" +
+    "<section class='card panel'>" +
+      "<div class='panelhead'><div><h3>Inventory &amp; Reorder Report</h3><p>Active products with 10 or fewer units</p></div><span class='count' id='reportStockCount'>—</span></div>" +
+      "<div class='tablewrap'><table><thead><tr><th>PRODUCT</th><th>SKU</th><th>STOCK</th><th>UNIT</th><th>STOCK VALUE</th></tr></thead><tbody id='reportStockRows'><tr><td colspan='5'>Loading inventory...</td></tr></tbody></table></div>" +
+    "</section><button class='soft' id='reportRefresh' style='margin-top:14px'>↻ Refresh Reports</button>";
+
+  const period = document.getElementById("reportPeriod");
+  const refresh = document.getElementById("reportRefresh");
+  const start = new Date(new Date().getFullYear() - 1, 0, 1);
+
+  try {
+    const results = await Promise.all([
+      fetchDashboardProducts(),
+      fetchDashboardOrders(start)
+    ]);
+    const products = results[0] || [];
+    const orders = results[1] || [];
+    const paid = orders.filter(order =>
+      order.payment_status === "paid" &&
+      !["cancelled", "rejected"].includes(order.order_status)
+    );
+    const inventoryValue = products.reduce((sum, product) =>
+      sum + Number(product.price || 0) * Number(product.stock_quantity || 0), 0);
+
+    document.getElementById("reportPaidSales").textContent =
+      money(paid.reduce((sum, order) => sum + Number(order.total_amount || 0), 0));
+    document.getElementById("reportInventoryValue").textContent = money(inventoryValue);
+
+    function drawMonthlyRows() {
+      const months = Number(period.value || 6);
+      const now = new Date();
+      const firstMonth = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+      const relevantOrders = orders.filter(order => new Date(order.created_at) >= firstMonth);
+      document.getElementById("reportOrderCount").textContent =
+        relevantOrders.length.toLocaleString("en-PH");
+
+      const rows = [];
+      for (let offset = months - 1; offset >= 0; offset -= 1) {
+        const monthStart = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() - offset + 1, 1);
+        const monthOrders = paid.filter(order => {
+          const created = new Date(order.created_at);
+          return created >= monthStart && created < monthEnd;
+        });
+        const total = monthOrders.reduce((sum, order) =>
+          sum + Number(order.total_amount || 0), 0);
+        rows.push("<tr><td>" +
+          safeText(monthStart.toLocaleDateString("en-PH", { month: "long", year: "numeric" })) +
+          "</td><td>" + monthOrders.length.toLocaleString("en-PH") +
+          "</td><td>" + safeText(money(total)) + "</td></tr>");
+      }
+      document.getElementById("reportSalesRows").innerHTML = rows.join("");
+    }
+
+    const restock = products.filter(product => Number(product.stock_quantity) <= 10)
+      .sort((a, b) => Number(a.stock_quantity) - Number(b.stock_quantity));
+    document.getElementById("reportStockCount").textContent = restock.length + " products";
+    document.getElementById("reportStockRows").innerHTML = restock.length
+      ? restock.map(product => {
+          const quantity = Number(product.stock_quantity || 0);
+          const value = Number(product.price || 0) * quantity;
+          return "<tr><td>" + safeText(product.product_name || "Product") +
+            "</td><td>" + safeText(product.product_code || "—") +
+            "</td><td><span class='" + (quantity === 0 ? "danger" : "warn") +
+            "'>" + quantity + "</span></td><td>" +
+            safeText(product.unit || "Unit") + "</td><td>" +
+            safeText(money(value)) + "</td></tr>";
+        }).join("")
+      : "<tr><td colspan='5'>No products need restocking.</td></tr>";
+
+    drawMonthlyRows();
+    period.onchange = drawMonthlyRows;
+    refresh.onclick = () => renderReportsPage();
+  } catch (error) {
+    console.error("Reports loading error:", error);
+    notify("Unable to load reports: " + error.message);
+    document.getElementById("reportSalesRows").innerHTML =
+      "<tr><td colspan='3'>Report data could not be loaded.</td></tr>";
+    document.getElementById("reportStockRows").innerHTML =
+      "<tr><td colspan='5'>Inventory data could not be loaded.</td></tr>";
+    refresh.onclick = () => renderReportsPage();
+  }
+}
 
 let dashboardProducts = [];
 let dashboardOrders = [];
