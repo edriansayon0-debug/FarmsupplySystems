@@ -119,8 +119,12 @@ async function renderInventoryPage() {
       "<label>Reason Code<select id='inventoryAdjustReason' required><option value=''>Select reason</option><option>Purchase / Restock Delivery</option><option>Damage / Expired</option><option>Return to Supplier</option><option>Correction / Physical Count</option><option>Other</option></select></label>" +
       "<label>Reference Number / PO<input id='inventoryAdjustReference' type='text' maxlength='80' placeholder='e.g. PO-2026-102'></label>" +
       "<label>Log Notes<textarea id='inventoryAdjustNotes' rows='3' maxlength='500' placeholder='Describe details about adjustment...'></textarea></label>" +
-      "<button class='inventory-adjust-submit' type='submit'>Apply Adjustment</button><p class='inventory-adjust-safety'>Adjustment saving will be enabled after the stock movement ledger and secure database transaction are connected.</p></form></section></aside>" +
+      "<button class='inventory-adjust-submit' type='submit'>Apply Adjustment</button><p class='inventory-adjust-safety'>Each saved adjustment updates stock and creates a movement record in one database transaction.</p></form></section></aside>" +
     "</div>";
+
+  content.innerHTML +=
+    "<section class='card inventory-history-card' id='inventoryMovementHistory' hidden><div class='inventory-section-heading'><div><h3>Stock-In / Stock-Out History</h3><p>Latest 100 recorded stock movements</p></div><button class='reports-refresh' id='inventoryHistoryRefresh'>↻ Refresh History</button></div>" +
+    "<div class='tablewrap'><table><thead><tr><th>DATE</th><th>PRODUCT</th><th>MOVEMENT</th><th>QUANTITY</th><th>STOCK BEFORE → AFTER</th><th>REASON / REFERENCE</th></tr></thead><tbody id='inventoryHistoryRows'><tr><td colspan='6'>Open history to load movements.</td></tr></tbody></table></div></section>";
 
   const refreshButton = document.getElementById("inventoryRefresh");
   const searchInput = document.getElementById("inventorySearch");
@@ -188,22 +192,98 @@ async function renderInventoryPage() {
   searchInput.addEventListener("input", drawInventoryRows);
   filterSelect.addEventListener("change", drawInventoryRows);
   refreshButton.onclick = loadInventory;
-  document.getElementById("inventoryStockView").onclick = () =>
-    notify("Stock-In / Stock-Out history will be available after the stock movement ledger is connected.");
-  document.getElementById("inventoryAdjustForm").addEventListener("submit", event => {
+  const historyPanel = document.getElementById("inventoryMovementHistory");
+  const historyRows = document.getElementById("inventoryHistoryRows");
+  const historyButton = document.getElementById("inventoryStockView");
+  const historyRefresh = document.getElementById("inventoryHistoryRefresh");
+
+  async function loadMovementHistory() {
+    historyRefresh.disabled = true;
+    historyRefresh.textContent = "Loading...";
+    historyRows.innerHTML = "<tr><td colspan='6'>Loading stock movement history...</td></tr>";
+    try {
+      const { data, error } = await supabase
+        .from("inventory_stock_movements")
+        .select("id, movement_type, quantity, quantity_change, stock_before, stock_after, reason_code, reference_number, notes, created_at, product:products(product_code,product_name,unit)")
+        .eq("organization_id", ORG_ID)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const movements = data || [];
+      const labels = { stock_in: "Stock In", stock_out: "Stock Out", order_deduction: "Customer Order", order_return: "Order Return" };
+      historyRows.innerHTML = movements.length ? movements.map(movement => {
+        const product = Array.isArray(movement.product) ? movement.product[0] : movement.product;
+        const change = Number(movement.quantity_change || 0);
+        const reference = [movement.reason_code, movement.reference_number].filter(Boolean).join(" · ");
+        const note = movement.notes ? "<small class='inventory-history-note'>" + safeText(movement.notes) + "</small>" : "";
+        return "<tr><td>" + safeText(new Date(movement.created_at).toLocaleString("en-PH")) +
+          "</td><td><strong>" + safeText(product?.product_name || "Product") + "</strong><small class='inventory-history-note'>" +
+          safeText(product?.product_code || "") + "</small></td><td>" + safeText(labels[movement.movement_type] || movement.movement_type) +
+          "</td><td><strong class='" + (change > 0 ? "inventory-change-positive" : "inventory-change-negative") + "'>" +
+          (change > 0 ? "+" : "") + change.toLocaleString("en-PH") + " " + safeText(product?.unit || "Unit") +
+          "</strong></td><td>" + Number(movement.stock_before).toLocaleString("en-PH") + " → " +
+          Number(movement.stock_after).toLocaleString("en-PH") + "</td><td>" + safeText(reference || "—") + note + "</td></tr>";
+      }).join("") : "<tr><td colspan='6'>No stock movements recorded yet. New orders and adjustments will appear here.</td></tr>";
+    } catch (error) {
+      console.error("Stock movement history error:", error);
+      historyRows.innerHTML = "<tr><td colspan='6'>Unable to load stock movement history.</td></tr>";
+      notify("Unable to load stock history: " + (error.message || "Unknown error"));
+    } finally {
+      historyRefresh.disabled = false;
+      historyRefresh.textContent = "↻ Refresh History";
+    }
+  }
+
+  historyButton.onclick = async () => {
+    historyPanel.hidden = !historyPanel.hidden;
+    historyButton.textContent = historyPanel.hidden ? "View Stock-In / Stock-Out" : "Hide Stock-In / Stock-Out";
+    if (!historyPanel.hidden) await loadMovementHistory();
+  };
+  historyRefresh.onclick = loadMovementHistory;
+
+  document.getElementById("inventoryAdjustForm").addEventListener("submit", async event => {
     event.preventDefault();
-    const product = products.find(item => item.id === productSelect.value);
+    const productId = productSelect.value;
+    const product = products.find(item => item.id === productId);
     const quantity = Number(document.getElementById("inventoryAdjustQuantity").value);
     const operation = document.getElementById("inventoryAdjustOperation").value;
-    if (!product || !Number.isInteger(quantity) || quantity < 1) {
-      notify("Select a product and enter a valid whole-number quantity.");
+    const reason = document.getElementById("inventoryAdjustReason").value;
+    const reference = document.getElementById("inventoryAdjustReference").value.trim();
+    const notes = document.getElementById("inventoryAdjustNotes").value.trim();
+    const submit = document.getElementById("inventoryAdjustForm").querySelector("[type='submit']");
+
+    if (!product || !Number.isInteger(quantity) || quantity < 1 || !reason) {
+      notify("Select a product, valid whole-number quantity, and reason.");
       return;
     }
     if (operation === "out" && quantity > Number(product.stock_quantity || 0)) {
-      notify("Cannot stock out more than the current available quantity.");
+      notify("Stock-Out quantity cannot exceed available stock.");
       return;
     }
-    notify("Adjustment form validated. Saving is not enabled yet; stock has not been changed.");
+
+    submit.disabled = true;
+    submit.textContent = "Saving Adjustment...";
+    try {
+      const { data, error } = await supabase.rpc("adjust_inventory_stock", {
+        p_product_id: productId,
+        p_operation: operation,
+        p_quantity: quantity,
+        p_reason_code: reason,
+        p_reference_number: reference || null,
+        p_notes: notes || null
+      });
+      if (error) throw error;
+      event.target.reset();
+      notify("Stock adjustment saved. New quantity: " + Number(data).toLocaleString("en-PH") + " " + (product.unit || "Unit"));
+      await loadInventory();
+      if (!historyPanel.hidden) await loadMovementHistory();
+    } catch (error) {
+      console.error("Stock adjustment error:", error);
+      notify("Unable to save stock adjustment: " + (error.message || "Unknown error"));
+    } finally {
+      submit.disabled = false;
+      submit.textContent = "Apply Adjustment";
+    }
   });
   await loadInventory();
 }
