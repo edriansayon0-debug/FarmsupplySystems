@@ -341,11 +341,11 @@ async function renderReportsPage() {
         rows.push([from.toLocaleDateString("en-PH", {month:"long",year:"numeric"}), monthOrders.length,
           monthOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0).toFixed(2)]);
       }
-      const csv = rows.map(row => row.map(value => '"' + String(value).replace(/"/g, '""') + '"').join(",")).join("\\r\\n");
+      const csv = "\uFEFF" + rows.map(row => row.map(value => '"' + String(value).replace(/"/g, '""') + '"' ).join(",")).join("\r\n");
       const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a"); link.href = url; link.download = "farm-supplies-sales-report.csv"; link.click();
-      URL.revokeObjectURL(url);
+      const link = document.createElement("a"); link.href = url; link.download = "farm-supplies-sales-report.csv"; document.body.appendChild(link); link.click(); link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     drawMonthlyRows();
     period.onchange = drawMonthlyRows;
