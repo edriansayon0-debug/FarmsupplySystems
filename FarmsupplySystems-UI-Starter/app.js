@@ -182,7 +182,7 @@ async function renderReportsPage() {
     "<section class='card panel reports-panel' data-report-panel='sales' style='margin-bottom:16px'>" +
       "<div class='panelhead'><div><h3>Monthly Sales Report</h3><p>Paid order totals by month</p></div>" +
       "<select id='reportPeriod'><option value='6'>Last 6 months</option><option value='12'>Last 12 months</option></select></div>" +
-      "<div class='tablewrap'><table><thead><tr><th>MONTH</th><th>ORDERS</th><th>PAID SALES</th></tr></thead><tbody id='reportSalesRows'><tr><td colspan='3'>Loading report...</td></tr></tbody></table></div>" +
+      "<div class='reports-sales-chart' id='reportSalesChart'></div><div class='tablewrap'><table><thead><tr><th>MONTH</th><th>ORDERS</th><th>PAID SALES</th></tr></thead><tbody id='reportSalesRows'><tr><td colspan='3'>Loading report...</td></tr></tbody></table></div>" +
     "</section>" +
     "<section class='card panel reports-panel' data-report-panel='inventory'>" +
       "<div class='panelhead'><div><h3>Inventory &amp; Reorder Report</h3><p>Active products with 10 or fewer units</p></div><span class='count' id='reportStockCount'>—</span></div>" +
@@ -225,6 +225,7 @@ async function renderReportsPage() {
         relevantOrders.length.toLocaleString("en-PH");
 
       const rows = [];
+      const chartData = [];
       for (let offset = months - 1; offset >= 0; offset -= 1) {
         const monthStart = new Date(now.getFullYear(), now.getMonth() - offset, 1);
         const monthEnd = new Date(now.getFullYear(), now.getMonth() - offset + 1, 1);
@@ -234,12 +235,19 @@ async function renderReportsPage() {
         });
         const total = monthOrders.reduce((sum, order) =>
           sum + Number(order.total_amount || 0), 0);
+        chartData.push({ label: monthStart.toLocaleDateString("en-PH", { month: "short" }), total });
         rows.push("<tr><td>" +
           safeText(monthStart.toLocaleDateString("en-PH", { month: "long", year: "numeric" })) +
           "</td><td>" + monthOrders.length.toLocaleString("en-PH") +
           "</td><td>" + safeText(money(total)) + "</td></tr>");
       }
       document.getElementById("reportSalesRows").innerHTML = rows.join("");
+      const chartMax = Math.max(1, ...chartData.map(item => item.total));
+      document.getElementById("reportSalesChart").innerHTML = chartData.map(item =>
+        "<div class='reports-chart-column' title='" + safeText(item.label + ": " + money(item.total)) +
+        "'><b>" + safeText(compactPeso(item.total)) + "</b><i style='height:" +
+        Math.max(item.total > 0 ? 4 : 0, item.total / chartMax * 100) +
+        "%'></i><small>" + safeText(item.label) + "</small></div>").join("");
     }
 
     const restock = products.filter(product => Number(product.stock_quantity) <= 10)
