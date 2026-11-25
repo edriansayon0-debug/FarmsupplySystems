@@ -110,7 +110,7 @@ function navigate(page) {
   if (page === "customers") {
     location.hash = "customers";
 
-    ("sidebar").classList.remove("open");
+    document.getElementById("sidebar").classList.remove("open");
 
     loadOrganizationCustomerManagement();
     return;
@@ -135,13 +135,13 @@ function navigate(page) {
     </section>
   `;
 
-  ("back").onclick = () => {
-    location.reload();
-  };
+  document.getElementById("back").onclick = () => {
+  location.reload();
+};
 
   location.hash = page;
 
-  ("sidebar").classList.remove("open");
+  document.getElementById("sidebar").classList.remove("open");
 }
 
 document.querySelectorAll(".nav").forEach((nav) => {
@@ -156,11 +156,11 @@ document.querySelectorAll("[data-goto]").forEach((button) => {
   });
 });
 
-("menu").onclick = () => {
-  ("sidebar").classList.toggle("open");
+document.getElementById("menu").onclick = () => {
+  document.getElementById("sidebar").classList.toggle("open");
 };
 
-("refresh").onclick = () => {
+document.getElementById("refresh").onclick = () => {
   notify("Dashboard preview refreshed.");
 };
 
