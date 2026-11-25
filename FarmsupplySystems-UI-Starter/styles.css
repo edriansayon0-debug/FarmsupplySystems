@@ -209,3 +209,32 @@
 /* Reports top performer KPI */
 .reports-top-performer strong{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px!important;color:#2d6a4f!important}
 .reports-top-performer small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+
+/* INVENTORY MANAGEMENT — LIVE STOCK VIEW */
+.inventory-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:2px 0 18px}
+.inventory-heading h2{margin:4px 0 5px;color:#183f2e;font-family:Outfit,sans-serif;font-size:24px;letter-spacing:-.5px}
+.inventory-heading p{margin:0;color:#7c887e;font-size:12px}
+.inventory-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.inventory-kpis .stat{min-width:0;border:1px solid #e8e7df;border-radius:10px;background:#fff;padding:16px 17px;box-shadow:0 2px 8px rgba(24,60,44,.025)}
+.inventory-kpis .stat>div{color:#768177;font-size:10px}
+.inventory-kpis .stat strong{display:block;margin:10px 0 7px;color:#1d2921;font-size:23px}
+.inventory-kpis .stat small{color:#8b948b;font-size:9px}
+.inventory-table-panel{border:1px solid #e8e7df;border-radius:10px;background:#fff;padding:18px}
+.inventory-toolbar{display:flex;justify-content:space-between;gap:12px;margin-bottom:16px}
+.inventory-toolbar input,.inventory-toolbar select{min-width:0;border:1px solid #e3e5dc;border-radius:7px;background:#fff;padding:10px 12px;color:#526257;font:inherit;font-size:11px}
+.inventory-toolbar input{flex:1}
+.inventory-toolbar select{width:190px}
+.inventory-table-panel .tablewrap{overflow-x:auto}
+.inventory-table-panel table{width:100%;border-collapse:collapse;font-size:10px}
+.inventory-table-panel thead{background:#f7f8f4}
+.inventory-table-panel th{padding:11px 10px;color:#7e897f;font-size:8px;font-weight:700;letter-spacing:.5px;text-align:left;white-space:nowrap}
+.inventory-table-panel td{padding:12px 10px;border-bottom:1px solid #efefe9;color:#526057;white-space:nowrap}
+.inventory-table-panel tbody tr:hover{background:#f8fbf8}
+.inventory-status{display:inline-block;border-radius:20px;padding:5px 9px;font-size:9px;font-weight:700}
+.inventory-status.in{background:#e8f5ec;color:#2d7650}
+.inventory-status.low{background:#fff4df;color:#9b6a16}
+.inventory-status.out{background:#fde9e7;color:#b5473d}
+.inventory-footnote{margin:14px 0 0;color:#929a91;font-size:10px;line-height:1.5}
+@media(max-width:900px){.inventory-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.inventory-heading{align-items:flex-start;flex-direction:column}.inventory-heading .reports-refresh{width:100%}.inventory-kpis{gap:8px}.inventory-kpis .stat{padding:12px}.inventory-kpis .stat strong{font-size:18px}.inventory-table-panel{padding:12px}.inventory-toolbar{flex-direction:column}.inventory-toolbar select{width:100%}}
