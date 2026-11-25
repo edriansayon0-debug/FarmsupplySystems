@@ -96,21 +96,36 @@ function navigate(page) {
   if (!labels[page]) return;
 
   
+
 async function renderInventoryPage() {
   content.innerHTML =
-    "<div class='inventory-heading'><div><span class='reports-kicker'>STOCK CONTROL</span><h2>Inventory Overview</h2><p>Current active product stock for Farm Supplies &amp; Equipment</p></div><button class='reports-refresh' id='inventoryRefresh'>↻ Refresh Inventory</button></div>" +
-    "<section class='grid inventory-kpis'>" +
-      "<article class='card stat'><div>Total Products</div><strong id='inventoryTotalProducts'>—</strong><small>Active catalog items</small></article>" +
-      "<article class='card stat'><div>In Stock</div><strong id='inventoryInStock'>—</strong><small>More than 10 units</small></article>" +
-      "<article class='card stat'><div>Low Stock</div><strong id='inventoryLowStock'>—</strong><small>1–10 units remaining</small></article>" +
-      "<article class='card stat'><div>Out of Stock</div><strong id='inventoryOutStock'>—</strong><small>Stock quantity is zero</small></article>" +
+    "<div class='inventory-bi-heading'><div><span class='reports-kicker'>WAREHOUSE &amp; STOCK OPERATIONS</span><h2>Inventory Management</h2><p>Monitor product quantities and stock availability</p></div><button class='reports-refresh' id='inventoryRefresh'>↻ Refresh Stock</button></div>" +
+    "<section class='grid inventory-bi-kpis'>" +
+      "<article class='card stat'><div>Total Items</div><strong id='inventoryTotalItems'>—</strong><small>Total quantity across active products</small></article>" +
+      "<article class='card stat'><div>In Stock</div><strong id='inventoryAvailableItems'>—</strong><small>Quantity available</small></article>" +
+      "<article class='card stat'><div>Low Stock Alerts</div><strong id='inventoryLowAlerts'>—</strong><small>Products need restocking</small></article>" +
+      "<article class='card stat'><div>Out of Stock</div><strong id='inventoryOutAlerts'>—</strong><small>Products with zero quantity</small></article>" +
     "</section>" +
-    "<section class='card panel inventory-table-panel'><div class='inventory-toolbar'><input id='inventorySearch' type='search' placeholder='Search product name or SKU...' aria-label='Search inventory'><select id='inventoryFilter' aria-label='Filter stock status'><option value='all'>All stock statuses</option><option value='in'>In stock</option><option value='low'>Low stock</option><option value='out'>Out of stock</option></select></div>" +
-    "<div class='tablewrap'><table><thead><tr><th>PRODUCT</th><th>SKU</th><th>STOCK</th><th>UNIT</th><th>UNIT PRICE</th><th>STOCK VALUE</th><th>STATUS</th></tr></thead><tbody id='inventoryRows'><tr><td colspan='7'>Loading inventory...</td></tr></tbody></table></div><p class='inventory-footnote'>This view displays current product quantities from Supabase. Stock adjustment tools will be added after the quantity data is verified.</p></section>";
+    "<div class='inventory-bi-layout'>" +
+      "<section class='card inventory-ledger'><div class='inventory-section-heading'><div><h3>Master Stock Ledger</h3><p>Current stock across active product catalog</p></div><span id='inventoryLedgerCount'>— products</span></div>" +
+      "<div class='inventory-ledger-tools'><input id='inventorySearch' type='search' placeholder='Search product or SKU...' aria-label='Search products'><select id='inventoryFilter' aria-label='Filter stock status'><option value='all'>All Stock Status</option><option value='in'>In Stock</option><option value='low'>Low Stock</option><option value='out'>Out of Stock</option></select></div>" +
+      "<div class='tablewrap'><table><thead><tr><th>PROD ID</th><th>PRODUCT NAME</th><th>CATEGORY</th><th>STOCK</th><th>STATUS</th></tr></thead><tbody id='inventoryRows'><tr><td colspan='5'>Loading stock ledger...</td></tr></tbody></table></div>" +
+      "<p class='inventory-ledger-note'>Stock quantities shown here are read directly from your live products table.</p></section>" +
+      "<aside class='inventory-adjust-column'><section class='card inventory-stock-link'><button type='button' id='inventoryStockView'>View Stock-In / Stock-Out</button></section>" +
+      "<section class='card inventory-adjust-card'><div class='inventory-section-heading'><div><h3>Quick Stock Adjustment</h3><p>Prepare an inventory movement</p></div></div>" +
+      "<form id='inventoryAdjustForm'><label>Target Product<select id='inventoryAdjustProduct' required><option value=''>Select a product</option></select></label>" +
+      "<label>Adjustment Operation<select id='inventoryAdjustOperation' required><option value='in'>Stock In (Restock)</option><option value='out'>Stock Out (Remove)</option></select></label>" +
+      "<label>Quantity to Adjust<input id='inventoryAdjustQuantity' type='number' min='1' step='1' placeholder='Enter quantity' required></label>" +
+      "<label>Reason Code<select id='inventoryAdjustReason' required><option value=''>Select reason</option><option>Purchase / Restock Delivery</option><option>Damage / Expired</option><option>Return to Supplier</option><option>Correction / Physical Count</option><option>Other</option></select></label>" +
+      "<label>Reference Number / PO<input id='inventoryAdjustReference' type='text' maxlength='80' placeholder='e.g. PO-2026-102'></label>" +
+      "<label>Log Notes<textarea id='inventoryAdjustNotes' rows='3' maxlength='500' placeholder='Describe details about adjustment...'></textarea></label>" +
+      "<button class='inventory-adjust-submit' type='submit'>Apply Adjustment</button><p class='inventory-adjust-safety'>Adjustment saving will be enabled after the stock movement ledger and secure database transaction are connected.</p></form></section></aside>" +
+    "</div>";
 
   const refreshButton = document.getElementById("inventoryRefresh");
   const searchInput = document.getElementById("inventorySearch");
   const filterSelect = document.getElementById("inventoryFilter");
+  const productSelect = document.getElementById("inventoryAdjustProduct");
   let products = [];
 
   const stockType = product => {
@@ -127,17 +142,18 @@ async function renderInventoryPage() {
         (product.product_code || "").toLowerCase().includes(query);
       return matchesQuery && (filter === "all" || stockType(product) === filter);
     });
+    document.getElementById("inventoryLedgerCount").textContent = filtered.length + " products";
     document.getElementById("inventoryRows").innerHTML = filtered.length
       ? filtered.map(product => {
           const type = stockType(product);
           const qty = Number(product.stock_quantity || 0);
-          return "<tr><td><strong>" + safeText(product.product_name || "Unnamed product") + "</strong></td><td>" +
-            safeText(product.product_code || "—") + "</td><td><strong>" + qty.toLocaleString("en-PH") +
-            "</strong></td><td>" + safeText(product.unit || "Unit") + "</td><td>" + safeText(money(product.price)) +
-            "</td><td>" + safeText(money(Number(product.price || 0) * qty)) +
-            "</td><td><span class='inventory-status " + type + "'>" + statusLabel(type) + "</span></td></tr>";
+          return "<tr class='inventory-ledger-row " + type + "'><td>" + safeText(product.product_code || "—") +
+            "</td><td><strong>" + safeText(product.product_name || "Unnamed product") + "</strong></td><td>" +
+            safeText(product.category || product.unit || "General") + "</td><td><strong>" + qty.toLocaleString("en-PH") +
+            " " + safeText(product.unit || "Unit") + "</strong></td><td><span class='inventory-status " + type + "'>" +
+            statusLabel(type) + "</span></td></tr>";
         }).join("")
-      : "<tr><td colspan='7'>No products match your search.</td></tr>";
+      : "<tr><td colspan='5'>No products match your search.</td></tr>";
   }
 
   async function loadInventory() {
@@ -145,28 +161,50 @@ async function renderInventoryPage() {
     refreshButton.textContent = "Loading...";
     try {
       products = await fetchDashboardProducts();
-      const total = products.length;
+      const totalItems = products.reduce((sum, product) => sum + Math.max(0, Number(product.stock_quantity || 0)), 0);
+      const availableItems = products.filter(product => stockType(product) === "in")
+        .reduce((sum, product) => sum + Number(product.stock_quantity || 0), 0);
       const low = products.filter(product => stockType(product) === "low").length;
       const out = products.filter(product => stockType(product) === "out").length;
-      document.getElementById("inventoryTotalProducts").textContent = total.toLocaleString("en-PH");
-      document.getElementById("inventoryInStock").textContent = (total - low - out).toLocaleString("en-PH");
-      document.getElementById("inventoryLowStock").textContent = low.toLocaleString("en-PH");
-      document.getElementById("inventoryOutStock").textContent = out.toLocaleString("en-PH");
+      document.getElementById("inventoryTotalItems").textContent = totalItems.toLocaleString("en-PH");
+      document.getElementById("inventoryAvailableItems").textContent = availableItems.toLocaleString("en-PH");
+      document.getElementById("inventoryLowAlerts").textContent = low.toLocaleString("en-PH") + " items";
+      document.getElementById("inventoryOutAlerts").textContent = out.toLocaleString("en-PH") + " items";
+      productSelect.innerHTML = "<option value=''>Select a product</option>" + products.map(product =>
+        "<option value='" + safeText(product.id) + "'>" + safeText((product.product_code || "SKU") + " — " + (product.product_name || "Product")) + "</option>"
+      ).join("");
       drawInventoryRows();
     } catch (error) {
       console.error("Inventory loading error:", error);
       document.getElementById("inventoryRows").innerHTML =
-        "<tr><td colspan='7'>Unable to load inventory. Please refresh or check your connection.</td></tr>";
+        "<tr><td colspan='5'>Unable to load inventory. Please refresh or check your connection.</td></tr>";
       notify("Unable to load inventory: " + (error.message || "Unknown error"));
     } finally {
       refreshButton.disabled = false;
-      refreshButton.textContent = "↻ Refresh Inventory";
+      refreshButton.textContent = "↻ Refresh Stock";
     }
   }
 
   searchInput.addEventListener("input", drawInventoryRows);
   filterSelect.addEventListener("change", drawInventoryRows);
   refreshButton.onclick = loadInventory;
+  document.getElementById("inventoryStockView").onclick = () =>
+    notify("Stock-In / Stock-Out history will be available after the stock movement ledger is connected.");
+  document.getElementById("inventoryAdjustForm").addEventListener("submit", event => {
+    event.preventDefault();
+    const product = products.find(item => item.id === productSelect.value);
+    const quantity = Number(document.getElementById("inventoryAdjustQuantity").value);
+    const operation = document.getElementById("inventoryAdjustOperation").value;
+    if (!product || !Number.isInteger(quantity) || quantity < 1) {
+      notify("Select a product and enter a valid whole-number quantity.");
+      return;
+    }
+    if (operation === "out" && quantity > Number(product.stock_quantity || 0)) {
+      notify("Cannot stock out more than the current available quantity.");
+      return;
+    }
+    notify("Adjustment form validated. Saving is not enabled yet; stock has not been changed.");
+  });
   await loadInventory();
 }
 
