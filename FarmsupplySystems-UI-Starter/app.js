@@ -160,17 +160,303 @@ document.getElementById("menu").onclick = () => {
   document.getElementById("sidebar").classList.toggle("open");
 };
 
-document.getElementById("refresh").onclick = () => {
-  notify("Dashboard preview refreshed.");
+
+let dashboardProducts = [];
+let dashboardOrders = [];
+let dashboardCustomers = [];
+
+async function fetchDashboardProducts() {
+  const size = 500;
+  let rows = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await supabase.from("products")
+      .select("id, product_code, product_name, price, stock_quantity, unit")
+      .eq("organization_id", ORG_ID).eq("is_active", true)
+      .order("stock_quantity", { ascending: true })
+      .range(from, from + size - 1);
+    if (error) throw error;
+    rows = rows.concat(data || []);
+    if (!data || data.length < size) break;
+  }
+  return rows;
+}
+
+async function fetchDashboardOrders(startDate) {
+  const size = 500;
+  let rows = [];
+  for (let from = 0; ; from += size) {
+    const { data, error } = await supabase.from("customer_orders")
+      .select("id, order_number, customer_id, total_amount, order_status, payment_status, created_at")
+      .eq("organization_id", ORG_ID)
+      .gte("created_at", startDate.toISOString())
+      .order("created_at", { ascending: false })
+      .range(from, from + size - 1);
+    if (error) throw error;
+    rows = rows.concat(data || []);
+    if (!data || data.length < size) break;
+  }
+  return rows;
+}
+
+async function loadDashboardData() {
+  const previousYearStart = new Date(new Date().getFullYear() - 1, 0, 1);
+  const results = await Promise.all([
+    fetchDashboardProducts(),
+    supabase.from("organization_customers")
+      .select("auth_user_id, full_name, business_name")
+      .eq("organization_id", ORG_ID),
+    fetchDashboardOrders(previousYearStart)
+  ]);
+  if (results[1].error) throw results[1].error;
+  dashboardProducts = results[0] || [];
+  dashboardCustomers = results[1].data || [];
+  dashboardOrders = results[2] || [];
+  renderDashboardSummary();
+  renderDashboardSales();
+  renderDashboardRecentOrders();
+  renderDashboardLowStock();
+}
+
+function isDashboardPaidSale(order) {
+  return order.payment_status === "paid" &&
+    !["cancelled", "rejected"].includes(order.order_status);
+}
+
+function renderDashboardSummary() {
+  const total = dashboardProducts.length;
+  const inStock = dashboardProducts.filter(p => Number(p.stock_quantity) > 10).length;
+  const lowStock = dashboardProducts.filter(p =>
+    Number(p.stock_quantity) > 0 && Number(p.stock_quantity) <= 10
+  ).length;
+  const outOfStock = dashboardProducts.filter(p => Number(p.stock_quantity) <= 0).length;
+  const inventoryValue = dashboardProducts.reduce((sum, p) =>
+    sum + Number(p.price || 0) * Number(p.stock_quantity || 0), 0);
+
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const todaySales = dashboardOrders.filter(order => {
+    const created = new Date(order.created_at);
+    return isDashboardPaidSale(order) && created >= start && created < end;
+  }).reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  setText("totalProductsValue", total.toLocaleString("en-PH"));
+  setText("inventoryValueValue", money(inventoryValue));
+  setText("todaySalesValue", money(todaySales));
+  setText("lowStockValue", lowStock.toLocaleString("en-PH"));
+  setText("inventoryTotalValue", total.toLocaleString("en-PH"));
+  setText("inventoryInStock", inStock.toLocaleString("en-PH"));
+  setText("inventoryLowStock", lowStock.toLocaleString("en-PH"));
+  setText("inventoryOutStock", outOfStock.toLocaleString("en-PH"));
+
+  const donut = document.getElementById("inventoryDonut");
+  if (donut) {
+    if (!total) {
+      donut.style.background = "conic-gradient(#e5e1d8 0 100%)";
+    } else {
+      const a = inStock / total * 100;
+      const b = a + lowStock / total * 100;
+      donut.style.background = "conic-gradient(#397b55 0 " + a +
+        "%,#e6bd59 " + a + "% " + b + "%,#d97970 " + b + "% 100%)";
+    }
+  }
+}
+
+function compactPeso(value) {
+  const n = Number(value || 0);
+  if (n >= 1000000) return "₱" + (n / 1000000).toFixed(1) + "M";
+  if (n >= 1000) return "₱" + (n / 1000).toFixed(0) + "k";
+  return "₱" + Math.round(n).toLocaleString("en-PH");
+}
+
+function dashboardSalesBetween(start, end) {
+  return dashboardOrders.filter(order => {
+    const created = new Date(order.created_at);
+    return isDashboardPaidSale(order) && created >= start && created < end;
+  }).reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+}
+
+function renderDashboardSales() {
+  const select = document.getElementById("period");
+  const bars = document.getElementById("salesBars");
+  const axis = document.getElementById("salesAxis");
+  if (!select || !bars || !axis) return;
+
+  const now = new Date();
+  const key = select.value || "7months";
+  let start;
+  let previousStart;
+  const labels = [];
+  const values = [];
+
+  if (key === "30days") {
+    start = new Date(now.getTime() - 30 * 86400000);
+    previousStart = new Date(now.getTime() - 60 * 86400000);
+    const interval = (now.getTime() - start.getTime()) / 5;
+    for (let i = 0; i < 5; i++) {
+      const a = new Date(start.getTime() + interval * i);
+      const b = new Date(start.getTime() + interval * (i + 1));
+      labels.push("W" + (i + 1));
+      values.push(dashboardSalesBetween(a, b));
+    }
+  } else if (key === "year") {
+    start = new Date(now.getFullYear(), 0, 1);
+    previousStart = new Date(now.getFullYear() - 1, 0, 1);
+    for (let month = 0; month <= now.getMonth(); month++) {
+      const a = new Date(now.getFullYear(), month, 1);
+      const b = new Date(now.getFullYear(), month + 1, 1);
+      labels.push(a.toLocaleDateString("en-PH", { month: "short" }));
+      values.push(dashboardSalesBetween(a, b));
+    }
+  } else {
+    start = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+    previousStart = new Date(now.getFullYear(), now.getMonth() - 13, 1);
+    for (let i = 0; i < 7; i++) {
+      const a = new Date(now.getFullYear(), now.getMonth() - 6 + i, 1);
+      const b = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
+      labels.push(a.toLocaleDateString("en-PH", { month: "short" }));
+      values.push(dashboardSalesBetween(a, b));
+    }
+  }
+
+  const current = dashboardSalesBetween(start, now);
+  const previous = dashboardSalesBetween(previousStart, start);
+  const max = Math.max(0, ...values);
+  let axisMax = 1;
+  if (max > 0) {
+    const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
+    const scaled = max / magnitude;
+    axisMax = (scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10) * magnitude;
+  }
+
+  axis.innerHTML = [1, .75, .5, .25, 0].map(f =>
+    "<span>" + compactPeso(axisMax * f) + "</span>"
+  ).join("");
+  bars.innerHTML = values.map((value, i) => {
+    const height = value / axisMax * 100;
+    return "<div title='" + safeText(labels[i]) + ": " + safeText(money(value)) +
+      "'><i class='" + (i === values.length - 1 ? "current" : "") +
+      "' style='height:" + height + "%'></i><small>" +
+      safeText(labels[i]) + "</small></div>";
+  }).join("");
+
+  const totalEl = document.getElementById("salesPeriodTotal");
+  const compareEl = document.getElementById("salesPeriodCompare");
+  if (totalEl) totalEl.textContent = money(current);
+  if (compareEl) {
+    if (previous === 0 && current === 0) {
+      compareEl.textContent = "No paid sales in selected period";
+    } else if (previous === 0) {
+      compareEl.textContent = "Paid sales recorded this period";
+    } else {
+      const change = (current - previous) / previous * 100;
+      compareEl.textContent = (change >= 0 ? "↗ " : "↘ ") +
+        Math.abs(change).toFixed(1) + "% vs. previous period";
+    }
+  }
+}
+
+function renderDashboardRecentOrders() {
+  const tbody = document.getElementById("dashboardRecentOrders");
+  if (!tbody) return;
+  const recent = dashboardOrders.slice(0, 4);
+  if (!recent.length) {
+    tbody.innerHTML = "<tr><td colspan='5'>No customer orders yet.</td></tr>";
+    return;
+  }
+  tbody.innerHTML = recent.map(order => {
+    const customer = dashboardCustomers.find(c => c.auth_user_id === order.customer_id);
+    const name = customer ? (customer.business_name || customer.full_name || "Customer") : "Customer";
+    const date = order.created_at ? new Date(order.created_at).toLocaleDateString("en-PH", {
+      year: "numeric", month: "short", day: "numeric"
+    }) : "—";
+    return "<tr><td class='ref'>" + safeText(order.order_number || "Order") +
+      "</td><td>" + safeText(name) + "</td><td>" + safeText(date) +
+      "</td><td>" + safeText(money(order.total_amount)) +
+      "</td><td><span class='" + statusClass(order.order_status) + "'>" +
+      safeText(statusText(order.order_status)) + "</span></td></tr>";
+  }).join("");
+}
+
+function renderDashboardLowStock() {
+  const container = document.getElementById("dashboardLowStockAlerts");
+  const count = document.getElementById("lowStockAlertCount");
+  if (!container || !count) return;
+
+  const items = dashboardProducts.filter(p => Number(p.stock_quantity) <= 10)
+    .sort((a, b) => Number(a.stock_quantity) - Number(b.stock_quantity));
+  const shown = items.slice(0, 3);
+  count.textContent = shown.length + " shown · " + items.length + " to restock";
+
+  if (!shown.length) {
+    container.innerHTML = "<p style='color:#267449;font-size:11px'>No low-stock products. Inventory looks good.</p>";
+    return;
+  }
+  container.innerHTML = shown.map(p => {
+    const quantity = Number(p.stock_quantity || 0);
+    const unit = p.unit || "units";
+    const cls = quantity <= 4 ? "danger" : "warn";
+    return "<div class='alert'><span>🌾</span><div><b>" +
+      safeText(p.product_name || "Product") + "</b><small>SKU: " +
+      safeText(p.product_code || "—") + " · " + quantity + " " +
+      safeText(unit) + " left</small></div><strong class='" + cls +
+      "'>" + quantity + "</strong></div>";
+  }).join("");
+}
+
+async function initializeDashboard() {
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) return;
+
+    const { data: membership, error: membershipError } = await supabase
+      .from("organization_memberships").select("id")
+      .eq("organization_id", ORG_ID)
+      .eq("user_id", data.session.user.id)
+      .eq("status", "active").maybeSingle();
+
+    if (membershipError) {
+      console.error("Dashboard membership check error:", membershipError);
+      return;
+    }
+    if (!membership) return;
+    await loadDashboardData();
+  } catch (error) {
+    console.error("Dashboard loading error:", error);
+    if (document.getElementById("totalProductsValue")) {
+      notify("Dashboard data could not be loaded: " + error.message);
+    }
+  }
+}
+
+document.getElementById("refresh").onclick = async () => {
+  const button = document.getElementById("refresh");
+  if (!button || button.disabled) return;
+  const originalText = button.textContent;
+  button.disabled = true;
+  button.textContent = "Refreshing...";
+  try {
+    await loadDashboardData();
+    notify("Dashboard data refreshed.");
+  } catch (error) {
+    console.error("Dashboard refresh error:", error);
+    notify("Unable to refresh dashboard: " + error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
 };
+
 
 document.getElementById("bell").onclick = () => {
   notify("Notifications will be connected in a later phase.");
 };
 
-document.getElementById("period").onchange = (event) => {
-  notify("Selected: " + event.target.value);
-};
+document.getElementById("period").onchange = renderDashboardSales;
 
 document.getElementById("search").onkeydown = (event) => {
   if (event.key === "Enter" && event.target.value.trim()) {
@@ -1634,3 +1920,13 @@ function showOrganizationCustomerForm(customer) {
       }
     };
 }
+
+
+// Load live dashboard data for signed-in organization members.
+initializeDashboard();
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === "SIGNED_IN" && session) {
+    setTimeout(() => initializeDashboard(), 0);
+  }
+});
