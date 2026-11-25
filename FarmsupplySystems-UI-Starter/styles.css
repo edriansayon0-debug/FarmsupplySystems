@@ -290,3 +290,19 @@
 .inventory-adjust-safety{margin:0;color:#8b948b;font-size:8px;line-height:1.45}
 @media(max-width:980px){.inventory-bi-layout{grid-template-columns:minmax(0,1fr)}.inventory-adjust-column{grid-template-columns:minmax(0,1fr)}.inventory-ledger .tablewrap{max-height:390px}}
 @media(max-width:650px){.inventory-bi-heading{align-items:flex-start;flex-direction:column}.inventory-bi-heading .reports-refresh{width:100%}.inventory-bi-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-bi-kpis .stat{padding:11px}.inventory-bi-kpis .stat strong{font-size:19px}.inventory-ledger{padding:10px}.inventory-ledger-tools{flex-direction:column}.inventory-ledger-tools select{width:100%}.inventory-ledger .tablewrap{max-height:420px}.inventory-adjust-card{padding:12px}}
+
+
+/* Inventory movement history */
+.inventory-history-card{margin-top:14px;padding:15px;border:1px solid #e8e7df;border-radius:9px;background:#fff;box-shadow:0 2px 8px rgba(24,60,44,.025)}
+.inventory-history-card[hidden]{display:none!important}
+.inventory-history-card .inventory-section-heading{align-items:center}
+.inventory-history-card .tablewrap{overflow:auto;max-height:480px}
+.inventory-history-card table{width:100%;border-collapse:collapse;font-size:9px}
+.inventory-history-card thead{position:sticky;top:0;z-index:1;background:#f5f6f0}
+.inventory-history-card th{padding:10px 8px;color:#788278;font-size:8px;text-align:left;white-space:nowrap}
+.inventory-history-card td{padding:10px 8px;border-bottom:1px solid #eff0e9;color:#566257;vertical-align:top}
+.inventory-history-note{display:block;margin-top:3px;color:#89948a;font-size:8px;line-height:1.4;white-space:normal;max-width:240px}
+.inventory-change-positive{color:#2d7650}
+.inventory-change-negative{color:#b5473d}
+.inventory-adjust-submit:disabled,.reports-refresh:disabled{opacity:.65;cursor:wait}
+@media(max-width:650px){.inventory-history-card{padding:10px}.inventory-history-card .inventory-section-heading{align-items:flex-start;flex-direction:column}.inventory-history-card .reports-refresh{width:100%}}
