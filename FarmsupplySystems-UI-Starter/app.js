@@ -615,16 +615,64 @@ function renderOrderManagement() {
 };
 
   document.getElementById("refreshOrders").onclick = async () => {
-  await fetchOrganizationCustomers();
+    const refreshButton = document.getElementById("refreshOrders");
 
-  renderOrderManagement();
+    if (!refreshButton || refreshButton.disabled) return;
 
-  if (selectedOrderId) {
-    await renderOrderDetails();
-  }
+    const originalText = refreshButton.textContent;
 
-  notify("Orders refreshed.");
-};
+    refreshButton.disabled = true;
+    refreshButton.textContent = "Refreshing...";
+
+    try {
+      const refreshed = await fetchOrganizationCustomers();
+
+      if (!refreshed) return;
+
+      if (
+        selectedCustomerId &&
+        !customers.some(
+          (customer) => customer.id === selectedCustomerId
+        )
+      ) {
+        selectedCustomerId = null;
+      }
+
+      if (
+        selectedOrderId &&
+        !orders.some(
+          (order) => order.id === selectedOrderId
+        )
+      ) {
+        selectedOrderId = null;
+      }
+
+      renderOrderRows();
+
+      if (selectedOrderId) {
+        await renderOrderDetails();
+      } else {
+        const details = document.getElementById("orderDetails");
+
+        if (details) {
+          details.textContent =
+            "Select an order to view its details.";
+        }
+      }
+
+      notify("Orders refreshed.");
+    } catch (error) {
+      console.error("Order refresh error:", error);
+
+      notify(
+        "Unable to refresh orders: " +
+        (error.message || "Unknown error")
+      );
+    } finally {
+      refreshButton.disabled = false;
+      refreshButton.textContent = originalText;
+    }
+  };
 
   renderOrderRows();
 }
@@ -1233,7 +1281,7 @@ async function fetchOrganizationCustomers() {
   if (customerError) {
     console.error("Customer loading error:", customerError);
     notify("Unable to load customers: " + customerError.message);
-    return;
+    return false;
   }
 
 const { data: orderData, error: orderError } =
@@ -1258,7 +1306,7 @@ const { data: orderData, error: orderError } =
   if (orderError) {
     console.error("Order loading error:", orderError);
     notify("Unable to load customer orders: " + orderError.message);
-    return;
+    return false;
   }
 
  organizationCustomers = customerData || [];
@@ -1273,6 +1321,8 @@ customers = organizationCustomers
   }));
 
 orders = orderData || [];
+
+  return true;
 }
 
 function renderOrganizationCustomerRows() {
