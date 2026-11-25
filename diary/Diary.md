@@ -6,3 +6,4 @@
 2026-11-25 — User confirmed Step 6 test order status and payment actions work correctly.
 2026-11-25 — User confirmed Step 7 end-to-end customer ordering, admin order management, status visibility, and inventory workflow tests passed.
 2026-11-25 — User confirmed Step 8 inventory validation and order management checks work correctly, including stock-limit warning and closed/cancelled order behavior.
+2026-11-25 — Replaced dashboard sample cards, charts, recent transactions, and stock alerts with live Organization A product/order data in `FarmsupplySystems-UI-Starter/index.html` and `app.js`; commits `87d145439e76da30002e8a6de9bb47337d88c9a2` and `1cc0b90bfd7a7b6f738306cb13f69c04ade2b9e9`.
