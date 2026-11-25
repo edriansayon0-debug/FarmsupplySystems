@@ -1236,17 +1236,24 @@ async function fetchOrganizationCustomers() {
     return;
   }
 
-  const { data: orderData, error: orderError } =
-    await supabase
-      .from("customer_orders")
-      .select(`
-        id,
-        customer_id,
-        total_amount,
-        payment_status,
-        order_status
-      `)
-      .eq("organization_id", ORG_ID);
+const { data: orderData, error: orderError } =
+  await supabase
+    .from("customer_orders")
+    .select(`
+      id,
+      order_number,
+      created_at,
+      customer_id,
+      total_amount,
+      payment_status,
+      order_status,
+      fulfillment_method,
+      payment_method,
+      delivery_address,
+      customer_notes
+    `)
+    .eq("organization_id", ORG_ID)
+    .order("created_at", { ascending: false });
 
   if (orderError) {
     console.error("Order loading error:", orderError);
