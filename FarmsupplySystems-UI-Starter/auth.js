@@ -23,6 +23,10 @@ const loginFooter = document.getElementById("loginFooter");
 const customerName = document.getElementById("customerName");
 const customerProducts = document.getElementById("customerProducts");
 const customerSignOut = document.getElementById("customerSignOut");
+const customerSearch = document.getElementById("customerProductSearch");
+const customerSort = document.getElementById("customerProductSort");
+const customerProductCount = document.getElementById("customerProductCount");
+let selectedCustomerCategory = "all";
 
 const ORGANIZATION_ID = "4e762e56-2d6c-468d-a50b-6c009e700064";
 
@@ -93,6 +97,11 @@ function showCustomer(profile) {
   customerScreen.style.display = "block";
 
   customerName.textContent = profile.full_name || "Customer";
+  const displayName = profile.full_name || "Customer";
+  const sidebarName = document.getElementById("customerSidebarName");
+  const avatar = document.getElementById("customerAvatar");
+  if (sidebarName) sidebarName.textContent = displayName;
+  if (avatar) avatar.textContent = displayName.substring(0, 2).toUpperCase();
 
   createCartElements();
 createOrderHistoryElements();
@@ -270,7 +279,7 @@ async function loadCustomerProducts() {
   const { data: products, error } = await supabase
     .from("products")
     .select(
-      "id, product_name, description, price, stock_quantity, unit, image_url"
+      "id, product_name, description, category, price, stock_quantity, unit, image_url"
     )
     .eq("organization_id", ORGANIZATION_ID)
     .eq("is_active", true)
@@ -293,32 +302,27 @@ async function loadCustomerProducts() {
   }
 
   const grid = document.createElement("div");
-
-  grid.style.display = "grid";
-  grid.style.gridTemplateColumns =
-    "repeat(auto-fit, minmax(220px, 1fr))";
-  grid.style.gap = "18px";
+  grid.className = "shop-product-grid";
 
   availableProducts.forEach((product) => {
     const card = document.createElement("article");
-
-    card.style.background = "#ffffff";
-    card.style.padding = "20px";
-    card.style.borderRadius = "12px";
-    card.style.border = "1px solid #e5e9e5";
+    card.className = "shop-product-card";
 
     const name = document.createElement("h3");
+    name.className = "shop-product-name";
     name.textContent = product.product_name;
 
     const description = document.createElement("p");
+    description.className = "shop-product-description";
     description.textContent =
       product.description || "No description available.";
 
     const price = document.createElement("strong");
+    price.className = "shop-product-price";
     price.textContent = formatMoney(product.price);
-    price.style.color = "#1b4332";
 
     const stock = document.createElement("p");
+    stock.className = "shop-product-stock";
     stock.textContent =
       "Available stock: " +
       product.stock_quantity +
@@ -332,6 +336,7 @@ async function loadCustomerProducts() {
         ? "Add to Cart"
         : "Out of Stock";
 
+    addButton.className = "shop-add-button";
     addButton.disabled = Number(product.stock_quantity) <= 0;
     addButton.addEventListener("click", () => addToCart(product.id));
 
@@ -340,6 +345,7 @@ async function loadCustomerProducts() {
   });
 
   customerProducts.appendChild(grid);
+  applyCustomerProductView();
   renderCart();
 }
 
@@ -494,6 +500,67 @@ async function loadCustomerOrderHistory() {
 }
 
 // ==========================================
+// CUSTOMER PRODUCT SEARCH, CATEGORY & SORT
+// ==========================================
+
+function applyCustomerProductView() {
+  const query = (customerSearch?.value || "").trim().toLowerCase();
+  const grid = customerProducts.querySelector(".shop-product-grid");
+  if (!grid) return;
+
+  const cards = Array.from(grid.children);
+  let visible = 0;
+  cards.forEach((card, index) => {
+    const product = availableProducts[index];
+    if (!product) return;
+    const category = String(product.category || "").toLowerCase();
+    const matchesCategory = selectedCustomerCategory === "all" ||
+      category === selectedCustomerCategory.toLowerCase();
+    const haystack = [product.product_name, product.description, product.category]
+      .filter(Boolean).join(" ").toLowerCase();
+    const matchesSearch = !query || haystack.includes(query);
+    card.hidden = !(matchesCategory && matchesSearch);
+    if (!card.hidden) visible++;
+  });
+
+  if (customerProductCount) {
+    customerProductCount.textContent = `${visible} product${visible === 1 ? "" : "s"} available`;
+  }
+}
+
+function setCustomerCategory(category) {
+  selectedCustomerCategory = category || "all";
+  document.querySelectorAll("[data-shop-filter]").forEach(button => {
+    button.classList.toggle("active", button.dataset.shopFilter === selectedCustomerCategory);
+  });
+  applyCustomerProductView();
+}
+
+document.querySelectorAll("[data-shop-filter]").forEach(button => {
+  button.addEventListener("click", () => setCustomerCategory(button.dataset.shopFilter));
+});
+document.querySelectorAll("[data-shop-category]").forEach(button => {
+  button.addEventListener("click", () => {
+    setCustomerCategory(button.dataset.shopCategory);
+    document.getElementById("shopCategories")?.scrollIntoView({ behavior: "smooth" });
+  });
+});
+customerSearch?.addEventListener("input", applyCustomerProductView);
+customerSort?.addEventListener("change", () => {
+  const grid = customerProducts.querySelector(".shop-product-grid");
+  if (!grid) return;
+  const sorted = [...availableProducts];
+  if (customerSort.value === "price-low") sorted.sort((a,b) => Number(a.price)-Number(b.price));
+  if (customerSort.value === "price-high") sorted.sort((a,b) => Number(b.price)-Number(a.price));
+  if (customerSort.value === "name") sorted.sort((a,b) => a.product_name.localeCompare(b.product_name));
+  const order = new Map(sorted.map((product,index) => [product.id,index]));
+  Array.from(grid.children).sort((a,b) => order.get(availableProducts.find(p => p.product_name === a.querySelector("h3")?.textContent)?.id) -
+    order.get(availableProducts.find(p => p.product_name === b.querySelector("h3")?.textContent)?.id))
+    .forEach(card => grid.appendChild(card));
+  applyCustomerProductView();
+});
+
+// ==========================================
 // CUSTOMER ORDER HISTORY
 // ==========================================
 
@@ -537,10 +604,8 @@ function createOrderHistoryElements() {
     </div>
   `;
 
-  customerProducts.parentElement.insertBefore(
-    section,
-    customerProducts
-  );
+  const historyMount = document.getElementById("customerOrderHistoryMount");
+  (historyMount || customerProducts.parentElement).appendChild(section);
 
   document.getElementById("refreshCustomerOrders")
     .addEventListener("click", loadCustomerOrderHistory);
@@ -562,96 +627,27 @@ function createCartElements() {
 
   const style = document.createElement("style");
   style.textContent = `
-    .cart-action-button {
-      background: #1b4332;
-      color: white;
-      border: 0;
-      padding: 10px 15px;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .cart-panel {
-      display: none;
-      background: white;
-      padding: 20px;
-      border: 1px solid #ddd;
-      border-radius: 12px;
-      margin: 15px 0;
-    }
-    .cart-panel.open { display: block; }
-    .cart-line {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 0;
-      border-bottom: 1px solid #eee;
-    }
-    .cart-qty-button {
-      padding: 5px 10px;
-      cursor: pointer;
-    }
-    .checkout-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #0008;
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-      padding: 15px;
-    }
-    .checkout-overlay.open { display: flex; }
-    .checkout-box {
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      width: min(100%, 500px);
-      max-height: 90vh;
-      overflow: auto;
-    }
-    .checkout-input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 10px;
-      margin: 5px 0 12px;
-    }
+    .checkout-overlay { display:none; position:fixed; inset:0; background:#14251dcc; z-index:9999; align-items:center; justify-content:center; padding:15px; }
+    .checkout-overlay.open { display:flex; }
+    .checkout-box { background:white; padding:26px; border-radius:18px; width:min(100%,500px); max-height:90vh; overflow:auto; }
+    .checkout-input { width:100%; box-sizing:border-box; padding:11px 12px; margin:6px 0 14px; border:1px solid #dce3d8; border-radius:8px; font:inherit; }
   `;
-  document.head.appendChild(style);
-
-  const toolbar = document.createElement("div");
-  toolbar.id = "customerCartToolbar";
-  toolbar.style.textAlign = "right";
-  toolbar.style.margin = "20px 0";
-
-  const cartButton = document.createElement("button");
-  cartButton.type = "button";
-  cartButton.className = "cart-action-button";
-  cartButton.id = "toggleCustomerCart";
-  cartButton.textContent = "Shopping Cart (0)";
-
-  cartButton.addEventListener("click", () => {
-    document.getElementById("customerCartPanel")
-      .classList.toggle("open");
-  });
-
-  toolbar.appendChild(cartButton);
-  customerProducts.parentElement.insertBefore(toolbar, customerProducts);
 
   const panel = document.createElement("section");
   panel.id = "customerCartPanel";
-  panel.className = "cart-panel";
+  panel.className = "cart-panel shop-cart-card";
 
   panel.innerHTML = `
-    <h2>Your Shopping Cart</h2>
-    <div id="customerCartItems"></div>
-    <h3>Total: <span id="customerCartTotal">₱0.00</span></h3>
-    <button type="button" class="cart-action-button"
-      id="customerCheckoutButton">
-      Proceed to Checkout
-    </button>
+    <div class="shop-cart-heading"><div><span class="shop-cart-icon">▣</span><div><h2>Your farm cart</h2><small id="customerCartCount">0 items</small></div></div></div>
+    <div class="shop-cart-items" id="customerCartItems"></div>
+    <div class="shop-cart-summary"><div><span>Subtotal</span><strong id="customerCartTotal">₱0.00</strong></div><p>Delivery or pickup details are confirmed at checkout.</p></div>
+    <button type="button" class="cart-action-button shop-checkout-button"
+      id="customerCheckoutButton">Continue to checkout <span>→</span></button>
+    <p class="shop-cart-secure">✓ Secure order processing</p>
   `;
 
-  toolbar.insertAdjacentElement("afterend", panel);
+  const cartMount = document.getElementById("customerCartMount");
+  (cartMount || customerProducts.parentElement).appendChild(panel);
 
   document.getElementById("customerCheckoutButton")
     .addEventListener("click", openCheckout);
@@ -771,8 +767,8 @@ function renderCart() {
   const count = Array.from(customerCart.values())
     .reduce((sum, item) => sum + item.quantity, 0);
 
-  document.getElementById("toggleCustomerCart").textContent =
-    `Shopping Cart (${count})`;
+  const cartHeading = document.getElementById("customerCartCount");
+  if (cartHeading) cartHeading.textContent = `${count} items`;
 
   document.getElementById("customerCartTotal").textContent =
     formatMoney(getCartTotal());
