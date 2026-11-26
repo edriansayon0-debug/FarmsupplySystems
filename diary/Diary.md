@@ -34,3 +34,5 @@
 2026-11-26 — Fixed Saved Favorites product visibility by explicitly applying card display state alongside `hidden` and adding a hidden-card CSS override; updated customer portal `auth.js` and `styles.css`.
 
 2026-11-26 — Refined customer My Purchases order cards with readable order status/payment labels, corrected Pickup fulfillment wording, itemized lines, and responsive metadata styling; updated customer portal `auth.js` and `styles.css`.
+
+2026-11-26 — Corrected fallback title-casing for unrecognized customer order/payment statuses in `auth.js` after verification.
