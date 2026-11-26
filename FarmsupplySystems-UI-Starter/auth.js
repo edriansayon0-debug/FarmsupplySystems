@@ -135,6 +135,7 @@ function setAuthMode(mode) {
     : "Sign in to access your account.";
   loginSubmit.textContent = isSignup ? "Create account" : "Sign in";
   loginPassword.autocomplete = isSignup ? "new-password" : "current-password";
+  loginPassword.minLength = isSignup ? 8 : 0;
   customerSignupFields.hidden = !isSignup;
   customerSignupFullName.required = isSignup;
   forgotPassword.hidden = isSignup;
@@ -279,6 +280,12 @@ loginForm.addEventListener("submit", async (event) => {
   if (isSignup && fullName.length < 2) {
     showMessage("Please enter your full name.");
     customerSignupFullName.focus();
+    return;
+  }
+
+  if (isSignup && password.length < 8) {
+    showMessage("Use a password with at least 8 characters.");
+    loginPassword.focus();
     return;
   }
 
