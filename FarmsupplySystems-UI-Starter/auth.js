@@ -40,6 +40,7 @@ let customerCart = new Map();
 let favoriteProductIds = new Set();
 let showFavoritesOnly = false;
 let recentlyViewedProductIds = [];
+let comparedProductIds = [];
 
 // ==========================================
 // SCREEN MANAGEMENT
@@ -538,13 +539,24 @@ async function loadCustomerProducts() {
       openCustomerProductQuickView(product);
     });
 
-    card.append(media, category, name, description, price, stock, addButton, quickViewButton);
+    const compareButton = document.createElement("button");
+    compareButton.type = "button";
+    compareButton.className = "shop-compare-product-button";
+    compareButton.dataset.compareProductId = product.id;
+    compareButton.addEventListener("click", event => {
+      event.stopPropagation();
+      toggleCustomerProductComparison(product.id);
+    });
+    updateCustomerCompareCardButton(compareButton, product.id);
+
+    card.append(media, category, name, description, price, stock, addButton, quickViewButton, compareButton);
     card.addEventListener("click", () => recordRecentlyViewedProduct(product.id));
     grid.appendChild(card);
   });
 
   customerProducts.appendChild(grid);
   renderRecentlyViewedProducts();
+  renderCustomerCompareTray();
   applyCustomerProductView();
   renderCart();
 }
@@ -1037,6 +1049,187 @@ async function loadCustomerOrderHistory() {
 // ==========================================
 // CUSTOMER PRODUCT SEARCH, CATEGORY & SORT
 // ==========================================
+
+function updateCustomerCompareCardButton(button, productId) {
+  const isSelected = comparedProductIds.some(id => String(id) === String(productId));
+  button.textContent = isSelected ? "Selected for compare" : "Compare";
+  button.classList.toggle("is-selected", isSelected);
+  button.setAttribute("aria-pressed", String(isSelected));
+}
+
+function toggleCustomerProductComparison(productId) {
+  const existingIndex = comparedProductIds.findIndex(id => String(id) === String(productId));
+  if (existingIndex >= 0) {
+    comparedProductIds.splice(existingIndex, 1);
+  } else {
+    if (comparedProductIds.length >= 3) {
+      const status = document.getElementById("customerCompareStatus");
+      if (status) status.textContent = "You can compare up to 3 products at a time. Remove one to add another.";
+      return;
+    }
+    comparedProductIds.push(String(productId));
+  }
+
+  document.querySelectorAll("[data-compare-product-id]").forEach(button => {
+    updateCustomerCompareCardButton(button, button.dataset.compareProductId);
+  });
+  renderCustomerCompareTray();
+}
+
+function renderCustomerCompareTray() {
+  const grid = customerProducts?.querySelector(".shop-product-grid");
+  if (!grid) return;
+
+  let tray = document.getElementById("customerCompareTray");
+  if (!tray) {
+    tray = document.createElement("section");
+    tray.id = "customerCompareTray";
+    tray.className = "shop-compare-tray";
+    tray.innerHTML = `
+      <div class="shop-compare-tray-copy">
+        <strong>Compare products</strong>
+        <p class="shop-compare-tray-count"></p>
+        <div class="shop-compare-selected-list"></div>
+        <p id="customerCompareStatus" class="shop-compare-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="shop-compare-tray-actions">
+        <button type="button" class="shop-compare-clear">Clear</button>
+        <button type="button" class="shop-compare-open shop-add-button">Compare selected</button>
+      </div>
+    `;
+    tray.querySelector(".shop-compare-clear").addEventListener("click", clearCustomerProductComparison);
+    tray.querySelector(".shop-compare-open").addEventListener("click", openCustomerProductComparison);
+  }
+
+  tray.hidden = comparedProductIds.length === 0;
+  tray.querySelector(".shop-compare-tray-count").textContent =
+    comparedProductIds.length + " of 3 products selected";
+  const selectedList = tray.querySelector(".shop-compare-selected-list");
+  selectedList.replaceChildren();
+  comparedProductIds.forEach(id => {
+    const product = availableProducts.find(item => String(item.id) === String(id));
+    if (!product) return;
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "shop-compare-chip";
+    chip.textContent = product.product_name + " ×";
+    chip.setAttribute("aria-label", "Remove " + product.product_name + " from comparison");
+    chip.addEventListener("click", () => toggleCustomerProductComparison(product.id));
+    selectedList.appendChild(chip);
+  });
+  if (comparedProductIds.length < 2) {
+    tray.querySelector(".shop-compare-open").disabled = true;
+    const status = tray.querySelector(".shop-compare-status");
+    if (status && !status.textContent) status.textContent = "Select at least 2 products to compare.";
+  } else {
+    tray.querySelector(".shop-compare-open").disabled = false;
+    const status = tray.querySelector(".shop-compare-status");
+    if (status) status.textContent = "";
+  }
+  customerProducts.insertBefore(tray, grid);
+}
+
+function clearCustomerProductComparison() {
+  comparedProductIds = [];
+  document.querySelectorAll("[data-compare-product-id]").forEach(button => {
+    updateCustomerCompareCardButton(button, button.dataset.compareProductId);
+  });
+  renderCustomerCompareTray();
+}
+
+function closeCustomerProductComparison() {
+  const modal = document.getElementById("customerProductComparisonModal");
+  if (!modal) return;
+  modal.hidden = true;
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function openCustomerProductComparison() {
+  const products = comparedProductIds
+    .map(id => availableProducts.find(product => String(product.id) === String(id)))
+    .filter(Boolean);
+  if (products.length < 2) return;
+
+  let modal = document.getElementById("customerProductComparisonModal");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "customerProductComparisonModal";
+    modal.className = "shop-compare-modal-overlay";
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    modal.innerHTML = `
+      <section class="shop-compare-modal" role="dialog" aria-modal="true" aria-labelledby="customerCompareTitle" tabindex="-1">
+        <header class="shop-compare-modal-header">
+          <div><p>PRODUCT COMPARISON</p><h2 id="customerCompareTitle">Compare farm supplies</h2></div>
+          <button type="button" class="shop-compare-modal-close" aria-label="Close comparison">×</button>
+        </header>
+        <div class="shop-compare-table-wrap"><table class="shop-compare-table"></table></div>
+      </section>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector(".shop-compare-modal-close").addEventListener("click", closeCustomerProductComparison);
+    modal.addEventListener("click", event => {
+      if (event.target === modal) closeCustomerProductComparison();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !modal.hidden) closeCustomerProductComparison();
+    });
+  }
+
+  const table = modal.querySelector(".shop-compare-table");
+  table.replaceChildren();
+  const header = document.createElement("tr");
+  const firstHeader = document.createElement("th");
+  firstHeader.scope = "col";
+  firstHeader.textContent = "Product details";
+  header.appendChild(firstHeader);
+  products.forEach(product => {
+    const cell = document.createElement("th");
+    cell.scope = "col";
+    const name = document.createElement("strong");
+    name.textContent = product.product_name;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "shop-compare-remove";
+    remove.textContent = "Remove";
+    remove.addEventListener("click", () => {
+      toggleCustomerProductComparison(product.id);
+      if (comparedProductIds.length < 2) closeCustomerProductComparison();
+      else openCustomerProductComparison();
+    });
+    cell.append(name, remove);
+    header.appendChild(cell);
+  });
+  const thead = document.createElement("thead");
+  thead.appendChild(header);
+  table.appendChild(thead);
+
+  const tbody = document.createElement("tbody");
+  const rows = [
+    ["Category", product => product.category || "Farm supply"],
+    ["Price", product => formatMoney(product.price)],
+    ["Available stock", product => (Math.max(0, Number(product.stock_quantity) || 0)) + " " + (product.unit || "piece")],
+    ["Description", product => product.description || "No description available."]
+  ];
+  rows.forEach(([label, valueFor]) => {
+    const row = document.createElement("tr");
+    const labelCell = document.createElement("th");
+    labelCell.scope = "row";
+    labelCell.textContent = label;
+    row.appendChild(labelCell);
+    products.forEach(product => {
+      const cell = document.createElement("td");
+      cell.textContent = valueFor(product);
+      row.appendChild(cell);
+    });
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+
+  modal.hidden = false;
+  modal.setAttribute("aria-hidden", "false");
+  modal.querySelector(".shop-compare-modal").focus();
+}
 
 function applyCustomerProductView() {
   const query = (customerSearch?.value || "").trim().toLowerCase();
