@@ -753,3 +753,28 @@
   .customer-order-meta:last-child { grid-column: 1 / -1; }
   .customer-order-items li { font-size: 11px; }
 }
+
+/* My Purchases — add a past order back to the current cart */
+.customer-order-buy-again {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 15px;
+  border: 1px solid #1b4332;
+  border-radius: 10px;
+  background: #1b4332;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: background .16s ease, transform .16s ease;
+}
+.customer-order-buy-again:hover { background: #24563f; }
+.customer-order-buy-again:active { transform: translateY(1px); }
+.customer-order-buy-again:focus-visible {
+  outline: 3px solid rgba(82, 130, 96, .35);
+  outline-offset: 2px;
+}
