@@ -1327,13 +1327,30 @@ document.getElementById("customerAccountButton")?.addEventListener("click", () =
 customerSort?.addEventListener("change", () => {
   const grid = customerProducts.querySelector(".shop-product-grid");
   if (!grid) return;
+
   const sorted = [...availableProducts];
-  if (customerSort.value === "price-low") sorted.sort((a,b) => Number(a.price)-Number(b.price));
-  if (customerSort.value === "price-high") sorted.sort((a,b) => Number(b.price)-Number(a.price));
-  if (customerSort.value === "name") sorted.sort((a,b) => a.product_name.localeCompare(b.product_name));
-  const order = new Map(sorted.map((product,index) => [product.id,index]));
-  Array.from(grid.children).sort((a,b) => order.get(a.dataset.productId) - order.get(b.dataset.productId))
+  const byName = (a, b) => String(a.product_name || "").localeCompare(String(b.product_name || ""));
+  const stockOf = product => Math.max(0, Number(product.stock_quantity) || 0);
+
+  if (customerSort.value === "price-low") {
+    sorted.sort((a, b) => Number(a.price) - Number(b.price) || byName(a, b));
+  } else if (customerSort.value === "price-high") {
+    sorted.sort((a, b) => Number(b.price) - Number(a.price) || byName(a, b));
+  } else if (customerSort.value === "name") {
+    sorted.sort(byName);
+  } else if (customerSort.value === "stock-available") {
+    sorted.sort((a, b) =>
+      Number(stockOf(b) > 0) - Number(stockOf(a) > 0) ||
+      stockOf(b) - stockOf(a) ||
+      byName(a, b)
+    );
+  }
+
+  const order = new Map(sorted.map((product, index) => [String(product.id), index]));
+  Array.from(grid.children)
+    .sort((a, b) => (order.get(String(a.dataset.productId)) ?? 0) - (order.get(String(b.dataset.productId)) ?? 0))
     .forEach(card => grid.appendChild(card));
+
   applyCustomerProductView();
 });
 
