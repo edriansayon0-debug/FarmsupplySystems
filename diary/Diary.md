@@ -52,3 +52,5 @@
 2026-11-26 — Correction: source-level extraction had omitted existing `async` prefixes; final `auth.js` matches its original content (SHA `73ca809c2184adeaea2381cfb2d8cd1e4a689f3f`) and passes a JavaScript syntax parse, so no auth.js code change was needed.
 2026-11-26 — Added customer self-registration UI and `supabase.auth.signUp` handling in `FarmsupplySystems-UI-Starter/index.html` and `auth.js`; added and applied `customer_self_registration_profile` migration so explicit customer signups create `customer_profiles` without granting a default staff/admin profile. JavaScript syntax and markup checks passed.
 2026-11-26 — Reset the authentication screen to sign-in mode after logout so customers do not return to the registration view; updated `FarmsupplySystems-UI-Starter/auth.js`.
+
+2026-11-26 — Added customer product comparison for up to three selected items with a removable comparison tray and responsive comparison table; updated `FarmsupplySystems-UI-Starter/auth.js` and `styles.css`. Commits: `4d2d77dd79487355d93c3a876c2eb05e1229a279`, `8fa64a4e853d1672f0fafd46a7281e4679c603de`.
