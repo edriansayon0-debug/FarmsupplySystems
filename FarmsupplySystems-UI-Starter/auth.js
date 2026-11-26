@@ -667,11 +667,24 @@ function createCartElements() {
   panel.className = "cart-panel shop-cart-card";
 
   panel.innerHTML = `
-    <div class="shop-cart-heading"><div><span class="shop-cart-icon">▣</span><div><h2>Your farm cart</h2><small id="customerCartCount">0 items</small></div></div></div>
-    <div class="shop-cart-items" id="customerCartItems"></div>
-    <div class="shop-cart-summary"><div><span>Subtotal</span><strong id="customerCartTotal">₱0.00</strong></div><p>Delivery or pickup details are confirmed at checkout.</p></div>
+    <div class="shop-cart-heading">
+      <div>
+        <span class="shop-cart-icon" aria-hidden="true">▣</span>
+        <div>
+          <h2>Your farm cart</h2>
+          <small id="customerCartCount">0 items</small>
+        </div>
+      </div>
+    </div>
+    <div class="shop-cart-items" id="customerCartItems" aria-live="polite"></div>
+    <div class="shop-cart-summary">
+      <div><span>Subtotal</span><strong id="customerCartTotal">₱0.00</strong></div>
+      <p>Delivery or pickup details are confirmed at checkout.</p>
+    </div>
     <button type="button" class="cart-action-button shop-checkout-button"
-      id="customerCheckoutButton">Continue to checkout <span>→</span></button>
+      id="customerCheckoutButton" disabled>
+      <span>Continue to checkout</span><span aria-hidden="true">→</span>
+    </button>
     <p class="shop-cart-secure">✓ Secure order processing</p>
   `;
 
@@ -797,62 +810,132 @@ function renderCart() {
     .reduce((sum, item) => sum + item.quantity, 0);
 
   const cartHeading = document.getElementById("customerCartCount");
-  if (cartHeading) cartHeading.textContent = `${count} items`;
+  if (cartHeading) {
+    cartHeading.textContent = `${count} ${count === 1 ? "item" : "items"}`;
+  }
 
-  document.getElementById("customerCartTotal").textContent =
-    formatMoney(getCartTotal());
+  const totalElement = document.getElementById("customerCartTotal");
+  if (totalElement) totalElement.textContent = formatMoney(getCartTotal());
 
   const container = document.getElementById("customerCartItems");
+  const checkoutButton = document.getElementById("customerCheckoutButton");
+  if (!container || !checkoutButton) return;
+
   container.replaceChildren();
 
   if (customerCart.size === 0) {
-    container.textContent = "Your cart is empty.";
-    document.getElementById("customerCheckoutButton").disabled = true;
+    const empty = document.createElement("div");
+    empty.className = "shop-cart-empty";
+
+    const emptyIcon = document.createElement("span");
+    emptyIcon.className = "shop-cart-empty-icon";
+    emptyIcon.setAttribute("aria-hidden", "true");
+    emptyIcon.textContent = "🛒";
+
+    const emptyTitle = document.createElement("strong");
+    emptyTitle.textContent = "Your cart is empty";
+
+    const emptyMessage = document.createElement("p");
+    emptyMessage.textContent = "Browse farm supplies and add the items you need.";
+
+    const browseButton = document.createElement("button");
+    browseButton.type = "button";
+    browseButton.className = "shop-cart-browse";
+    browseButton.textContent = "Browse products";
+    browseButton.addEventListener("click", () => {
+      document.getElementById("shopProducts")?.scrollIntoView({ behavior: "smooth" });
+    });
+
+    empty.append(emptyIcon, emptyTitle, emptyMessage, browseButton);
+    container.appendChild(empty);
+    checkoutButton.disabled = true;
     return;
   }
 
-  document.getElementById("customerCheckoutButton").disabled = false;
+  checkoutButton.disabled = false;
 
   customerCart.forEach(({ product, quantity }) => {
-    const line = document.createElement("div");
-    line.className = "cart-line";
+    const line = document.createElement("article");
+    line.className = "shop-cart-line";
 
-    const info = document.createElement("div");
-    info.textContent =
-      `${product.product_name} — ${formatMoney(product.price)} each`;
+    const top = document.createElement("div");
+    top.className = "shop-cart-line-top";
+
+    const thumb = document.createElement("div");
+    thumb.className = "shop-cart-thumb";
+
+    if (product.image_url) {
+      const image = document.createElement("img");
+      image.src = product.image_url;
+      image.alt = "";
+      image.loading = "lazy";
+      image.addEventListener("error", () => {
+        image.remove();
+        thumb.classList.add("shop-cart-thumb-fallback");
+      }, { once: true });
+      thumb.appendChild(image);
+    } else {
+      thumb.classList.add("shop-cart-thumb-fallback");
+      thumb.textContent = "🌱";
+    }
+
+    const details = document.createElement("div");
+    details.className = "shop-cart-line-details";
+
+    const name = document.createElement("h3");
+    name.textContent = product.product_name;
+
+    const unitPrice = document.createElement("p");
+    unitPrice.textContent = `${formatMoney(product.price)} each`;
+
+    details.append(name, unitPrice);
+
+    const lineTotal = document.createElement("strong");
+    lineTotal.className = "shop-cart-line-total";
+    lineTotal.textContent = formatMoney(Number(product.price) * quantity);
+
+    top.append(thumb, details, lineTotal);
+
+    const bottom = document.createElement("div");
+    bottom.className = "shop-cart-line-bottom";
+
+    const quantityLabel = document.createElement("span");
+    quantityLabel.className = "shop-cart-quantity-label";
+    quantityLabel.textContent = "Quantity";
 
     const controls = document.createElement("div");
+    controls.className = "shop-cart-quantity-controls";
 
     const minus = document.createElement("button");
+    minus.type = "button";
     minus.className = "cart-qty-button";
     minus.textContent = "−";
-    minus.addEventListener("click", () =>
-      changeCartQuantity(product.id, -1)
-    );
+    minus.setAttribute("aria-label", `Decrease ${product.product_name} quantity`);
+    minus.addEventListener("click", () => changeCartQuantity(product.id, -1));
 
     const qty = document.createElement("span");
-    qty.textContent = ` ${quantity} `;
+    qty.className = "shop-cart-quantity";
+    qty.textContent = String(quantity);
+    qty.setAttribute("aria-label", `Quantity ${quantity}`);
 
     const plus = document.createElement("button");
+    plus.type = "button";
     plus.className = "cart-qty-button";
     plus.textContent = "+";
     plus.disabled = quantity >= Number(product.stock_quantity);
-    plus.addEventListener("click", () =>
-      changeCartQuantity(product.id, 1)
-    );
+    plus.setAttribute("aria-label", `Increase ${product.product_name} quantity`);
+    plus.addEventListener("click", () => changeCartQuantity(product.id, 1));
 
-    const subtotal = document.createElement("strong");
-    subtotal.textContent =
-      ` ${formatMoney(Number(product.price) * quantity)} `;
+    controls.append(minus, qty, plus);
 
     const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "shop-cart-remove";
     remove.textContent = "Remove";
-    remove.addEventListener("click", () =>
-      removeFromCart(product.id)
-    );
+    remove.addEventListener("click", () => removeFromCart(product.id));
 
-    controls.append(minus, qty, plus, subtotal, remove);
-    line.append(info, controls);
+    bottom.append(quantityLabel, controls, remove);
+    line.append(top, bottom);
     container.appendChild(line);
   });
 }
