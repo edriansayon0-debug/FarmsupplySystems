@@ -15,6 +15,10 @@ const loginPassword = document.getElementById("loginPassword");
 const loginSubmit = document.getElementById("loginSubmit");
 const authMessage = document.getElementById("authMessage");
 const forgotPassword = document.getElementById("forgotPassword");
+const customerSignupFields = document.getElementById("customerSignupFields");
+const customerSignupFullName = document.getElementById("customerSignupFullName");
+const authModeToggle = document.getElementById("authModeToggle");
+let authMode = "login";
 
 const loginTitle = document.getElementById("loginTitle");
 const loginDescription = document.getElementById("loginDescription");
@@ -120,6 +124,33 @@ function showMessage(message, success = false) {
   authMessage.textContent = message;
   authMessage.style.color = success ? "#2d8a50" : "#c0392b";
 }
+
+function setAuthMode(mode) {
+  authMode = mode === "signup" ? "signup" : "login";
+  const isSignup = authMode === "signup";
+
+  loginTitle.textContent = isSignup ? "Create your customer account" : "Welcome back";
+  loginDescription.textContent = isSignup
+    ? "Create an account to shop farm supplies and manage your orders."
+    : "Sign in to access your account.";
+  loginSubmit.textContent = isSignup ? "Create account" : "Sign in";
+  loginPassword.autocomplete = isSignup ? "new-password" : "current-password";
+  customerSignupFields.hidden = !isSignup;
+  customerSignupFullName.required = isSignup;
+  forgotPassword.hidden = isSignup;
+  authModeToggle.textContent = isSignup
+    ? "Already have an account? Sign in"
+    : "New customer? Create an account";
+  loginFooter.textContent = isSignup
+    ? "Customer accounts are for shopping and order history."
+    : "Secure access for S.T.P.B account holders.";
+  showMessage("");
+}
+
+authModeToggle.addEventListener("click", () => {
+  setAuthMode(authMode === "login" ? "signup" : "login");
+});
+setAuthMode("login");
 
 // ==========================================
 // VALIDATE ADMINISTRATOR ACCOUNT
@@ -242,37 +273,64 @@ loginForm.addEventListener("submit", async (event) => {
 
   const email = loginEmail.value.trim();
   const password = loginPassword.value;
+  const isSignup = authMode === "signup";
+  const fullName = customerSignupFullName.value.trim();
+
+  if (isSignup && fullName.length < 2) {
+    showMessage("Please enter your full name.");
+    customerSignupFullName.focus();
+    return;
+  }
 
   loginSubmit.disabled = true;
-  loginSubmit.textContent = "Signing in...";
-
+  loginSubmit.textContent = isSignup ? "Creating account..." : "Signing in...";
   showMessage("");
 
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    if (isSignup) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            account_type: "customer"
+          },
+          emailRedirectTo: window.location.origin
+        }
+      });
 
-    if (error) {
-      throw error;
+      if (error) throw error;
+
+      if (data.session && data.user) {
+        const success = await loadUserAndOpenScreen(data.user, "customer");
+        if (success) loginForm.reset();
+      } else {
+        loginForm.reset();
+        setAuthMode("login");
+        showMessage(
+          "Your account was created. Check your email to confirm your address, then sign in.",
+          true
+        );
+      }
+    } else {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) throw error;
+
+      const success = await loadUserAndOpenScreen(data.user);
+      if (success) loginForm.reset();
     }
-
-    const success = await loadUserAndOpenScreen(data.user);
-
-    if (success) {
-      loginForm.reset();
-    }
-
   } catch (error) {
-    showMessage(error.message);
-
+    showMessage(error.message || "Unable to complete your request. Please try again.");
   } finally {
     loginSubmit.disabled = false;
-    loginSubmit.textContent = "Sign in";
+    loginSubmit.textContent = authMode === "signup" ? "Create account" : "Sign in";
   }
 });
-
 // ==========================================
 // CUSTOMER PRODUCT BROWSING
 // ==========================================
