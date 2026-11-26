@@ -778,3 +778,61 @@
   outline: 3px solid rgba(82, 130, 96, .35);
   outline-offset: 2px;
 }
+
+/* Customer portal — account profile form */
+.customer-account-profile {
+  background: #fff; border: 1px solid #e4eae4; border-radius: 16px;
+  padding: 22px; margin: 20px 0 16px;
+  box-shadow: 0 4px 14px rgba(27, 67, 50, .04); scroll-margin-top: 24px;
+}
+.customer-account-profile-heading h2 {
+  margin: 0; color: #1b4332; font-size: 20px; font-weight: 800;
+}
+.customer-account-profile-eyebrow {
+  margin: 0 0 7px; color: #78917b; font-size: 10px;
+  font-weight: 750; letter-spacing: .08em;
+}
+.customer-account-profile-heading > div > p:last-child {
+  margin: 7px 0 0; color: #758176; font-size: 12px;
+}
+.customer-account-profile-form {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px; margin-top: 20px;
+}
+.customer-account-profile-field {
+  display: flex; flex-direction: column; gap: 7px; min-width: 0;
+}
+.customer-account-profile-field label {
+  color: #405344; font-size: 12px; font-weight: 700;
+}
+.customer-account-profile-field input {
+  width: 100%; min-height: 42px; padding: 10px 12px;
+  border: 1px solid #dfe6df; border-radius: 9px; background: #fff;
+  color: #263d2d; font: inherit; font-size: 13px; box-sizing: border-box;
+}
+.customer-account-profile-field input:focus {
+  outline: 2px solid rgba(55, 105, 69, .18); border-color: #527b5b;
+}
+.customer-account-profile-field input:disabled {
+  background: #f5f7f4; color: #778078; cursor: not-allowed;
+}
+.customer-account-profile-field small { color: #889188; font-size: 10px; }
+.customer-account-profile-actions {
+  grid-column: 1 / -1; display: flex; align-items: center;
+  justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid #edf0ec; padding-top: 15px;
+}
+.customer-account-profile-actions p { margin: 0; color: #56705a; font-size: 12px; }
+.customer-account-profile-save {
+  border: 0; border-radius: 9px; background: #1b4332; color: #fff;
+  padding: 11px 18px; font: inherit; font-size: 12px;
+  font-weight: 750; cursor: pointer;
+}
+.customer-account-profile-save:hover { background: #24563f; }
+.customer-account-profile-save:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 560px) {
+  .customer-account-profile { padding: 16px; }
+  .customer-account-profile-form { grid-template-columns: 1fr; }
+  .customer-account-profile-actions { align-items: stretch; flex-direction: column; }
+  .customer-account-profile-save { width: 100%; }
+}
