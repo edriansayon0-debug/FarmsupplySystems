@@ -471,7 +471,7 @@ function customerOrderStatusLabel(status) {
     rejected: "Not Approved"
   };
   const key = String(status || "pending").toLowerCase();
-  return labels[key] || key.replace(/[_-]+/g, " ").replace(/\\b\\w/g, letter => letter.toUpperCase());
+  return labels[key] || key.replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
 function customerPaymentStatusLabel(status) {
@@ -484,7 +484,7 @@ function customerPaymentStatusLabel(status) {
     failed: "Failed"
   };
   const key = String(status || "pending").toLowerCase();
-  return labels[key] || key.replace(/[_-]+/g, " ").replace(/\\b\\w/g, letter => letter.toUpperCase());
+  return labels[key] || key.replace(/[_-]+/g, " ").replace(/\b\w/g, letter => letter.toUpperCase());
 }
 
 function createCustomerOrderMeta(label, value) {
