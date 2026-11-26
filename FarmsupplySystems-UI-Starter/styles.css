@@ -991,3 +991,59 @@
     grid-column: auto;
   }
 }
+
+/* Customer shopping portal — recently viewed products */
+.shop-recently-viewed {
+  margin: 0 0 18px;
+  padding: 15px;
+  border: 1px solid #e4eae1;
+  border-radius: 12px;
+  background: #f8faf6;
+}
+.shop-recently-viewed[hidden] { display: none !important; }
+.shop-recently-viewed h3 {
+  margin: 0 0 10px;
+  color: #35533c;
+  font: 700 13px Outfit, sans-serif;
+}
+.shop-recently-viewed-list {
+  display: flex;
+  gap: 9px;
+  overflow-x: auto;
+  padding: 1px 1px 5px;
+}
+.shop-recently-viewed-item {
+  flex: 0 0 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #e0e8dd;
+  border-radius: 9px;
+  background: #fff;
+  color: #536653;
+  text-align: left;
+  cursor: pointer;
+}
+.shop-recently-viewed-item:hover {
+  border-color: #9db89e;
+  background: #f1f6ef;
+}
+.shop-recently-viewed-item span {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 650;
+}
+.shop-recently-viewed-item strong {
+  color: #2d6a4f;
+  font-size: 12px;
+}
+@media (max-width: 560px) {
+  .shop-recently-viewed { padding: 12px; }
+  .shop-recently-viewed-item { flex-basis: 165px; }
+}
