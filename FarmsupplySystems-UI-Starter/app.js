@@ -123,7 +123,9 @@ async function renderInventoryPage() {
     "</div>";
 
   content.innerHTML +=
-    "<section class='card inventory-history-card' id='inventoryMovementHistory' hidden><div class='inventory-section-heading'><div><h3>Stock-In / Stock-Out History</h3><p>Latest 100 recorded stock movements</p></div><button class='reports-refresh' id='inventoryHistoryRefresh'>↻ Refresh History</button></div>" +
+    "<section class='card inventory-history-card' id='inventoryMovementHistory' hidden><div class='inventory-section-heading'><div><h3>Stock-In / Stock-Out History</h3><p>Latest 100 recorded stock movements</p></div><div class='inventory-history-actions'><button class='reports-refresh' id='inventoryExportHistory'>Export CSV</button><button class='reports-refresh' id='inventoryHistoryRefresh'>↻ Refresh History</button></div></div>" +
+    "<div class='inventory-history-filters'><label>Movement Type<select id='inventoryMovementType'><option value='all'>All Movements</option><option value='stock_in'>Stock In</option><option value='stock_out'>Stock Out</option><option value='order_deduction'>Customer Orders</option><option value='order_return'>Order Returns</option></select></label><label>From Date<input id='inventoryMovementFrom' type='date'></label><label>To Date<input id='inventoryMovementTo' type='date'></label><button class='reports-refresh' id='inventoryClearMovementFilters'>Clear Filters</button></div>" +
+    "<div class='inventory-history-results' id='inventoryHistoryResults'>Showing latest 100 movements</div>" +
     "<div class='tablewrap'><table><thead><tr><th>DATE</th><th>PRODUCT</th><th>MOVEMENT</th><th>QUANTITY</th><th>STOCK BEFORE → AFTER</th><th>REASON / REFERENCE</th></tr></thead><tbody id='inventoryHistoryRows'><tr><td colspan='6'>Open history to load movements.</td></tr></tbody></table></div></section>";
 
   const refreshButton = document.getElementById("inventoryRefresh");
@@ -197,6 +199,38 @@ async function renderInventoryPage() {
   const historyButton = document.getElementById("inventoryStockView");
   const historyRefresh = document.getElementById("inventoryHistoryRefresh");
 
+  let loadedMovements = [];
+
+  function renderMovementRows() {
+    const type = document.getElementById("inventoryMovementType").value;
+    const fromDate = document.getElementById("inventoryMovementFrom").value;
+    const toDate = document.getElementById("inventoryMovementTo").value;
+    const fromTime = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
+    const toTime = toDate ? new Date(toDate + "T23:59:59.999").getTime() : null;
+    const filtered = loadedMovements.filter(movement => {
+      const time = new Date(movement.created_at).getTime();
+      return (type === "all" || movement.movement_type === type) &&
+        (fromTime === null || time >= fromTime) &&
+        (toTime === null || time <= toTime);
+    });
+    document.getElementById("inventoryHistoryResults").textContent =
+      "Showing " + filtered.length + " of " + loadedMovements.length + " loaded movements";
+    historyRows.innerHTML = filtered.length ? filtered.map(movement => {
+      const product = Array.isArray(movement.product) ? movement.product[0] : movement.product;
+      const change = Number(movement.quantity_change || 0);
+      const labels = { stock_in: "Stock In", stock_out: "Stock Out", order_deduction: "Customer Order", order_return: "Order Return" };
+      const reference = [movement.reason_code, movement.reference_number].filter(Boolean).join(" · ");
+      const note = movement.notes ? "<small class='inventory-history-note'>" + safeText(movement.notes) + "</small>" : "";
+      return "<tr><td>" + safeText(new Date(movement.created_at).toLocaleString("en-PH")) +
+        "</td><td><strong>" + safeText(product?.product_name || "Product") + "</strong><small class='inventory-history-note'>" +
+        safeText(product?.product_code || "") + "</small></td><td>" + safeText(labels[movement.movement_type] || movement.movement_type) +
+        "</td><td><strong class='" + (change > 0 ? "inventory-change-positive" : "inventory-change-negative") + "'>" +
+        (change > 0 ? "+" : "") + change.toLocaleString("en-PH") + " " + safeText(product?.unit || "Unit") +
+        "</strong></td><td>" + Number(movement.stock_before).toLocaleString("en-PH") + " → " +
+        Number(movement.stock_after).toLocaleString("en-PH") + "</td><td>" + safeText(reference || "—") + note + "</td></tr>";
+    }).join("") : "<tr><td colspan='6'>No movements match these filters.</td></tr>";
+  }
+
   async function loadMovementHistory() {
     historyRefresh.disabled = true;
     historyRefresh.textContent = "Loading...";
@@ -209,21 +243,8 @@ async function renderInventoryPage() {
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
-      const movements = data || [];
-      const labels = { stock_in: "Stock In", stock_out: "Stock Out", order_deduction: "Customer Order", order_return: "Order Return" };
-      historyRows.innerHTML = movements.length ? movements.map(movement => {
-        const product = Array.isArray(movement.product) ? movement.product[0] : movement.product;
-        const change = Number(movement.quantity_change || 0);
-        const reference = [movement.reason_code, movement.reference_number].filter(Boolean).join(" · ");
-        const note = movement.notes ? "<small class='inventory-history-note'>" + safeText(movement.notes) + "</small>" : "";
-        return "<tr><td>" + safeText(new Date(movement.created_at).toLocaleString("en-PH")) +
-          "</td><td><strong>" + safeText(product?.product_name || "Product") + "</strong><small class='inventory-history-note'>" +
-          safeText(product?.product_code || "") + "</small></td><td>" + safeText(labels[movement.movement_type] || movement.movement_type) +
-          "</td><td><strong class='" + (change > 0 ? "inventory-change-positive" : "inventory-change-negative") + "'>" +
-          (change > 0 ? "+" : "") + change.toLocaleString("en-PH") + " " + safeText(product?.unit || "Unit") +
-          "</strong></td><td>" + Number(movement.stock_before).toLocaleString("en-PH") + " → " +
-          Number(movement.stock_after).toLocaleString("en-PH") + "</td><td>" + safeText(reference || "—") + note + "</td></tr>";
-      }).join("") : "<tr><td colspan='6'>No stock movements recorded yet. New orders and adjustments will appear here.</td></tr>";
+      loadedMovements = data || [];
+      renderMovementRows();
     } catch (error) {
       console.error("Stock movement history error:", error);
       historyRows.innerHTML = "<tr><td colspan='6'>Unable to load stock movement history.</td></tr>";
@@ -233,6 +254,47 @@ async function renderInventoryPage() {
       historyRefresh.textContent = "↻ Refresh History";
     }
   }
+
+  ["inventoryMovementType", "inventoryMovementFrom", "inventoryMovementTo"].forEach(id => {
+    document.getElementById(id).addEventListener("change", renderMovementRows);
+  });
+  document.getElementById("inventoryClearMovementFilters").onclick = () => {
+    document.getElementById("inventoryMovementType").value = "all";
+    document.getElementById("inventoryMovementFrom").value = "";
+    document.getElementById("inventoryMovementTo").value = "";
+    renderMovementRows();
+  };
+  document.getElementById("inventoryExportHistory").onclick = () => {
+    const type = document.getElementById("inventoryMovementType").value;
+    const fromDate = document.getElementById("inventoryMovementFrom").value;
+    const toDate = document.getElementById("inventoryMovementTo").value;
+    const fromTime = fromDate ? new Date(fromDate + "T00:00:00").getTime() : null;
+    const toTime = toDate ? new Date(toDate + "T23:59:59.999").getTime() : null;
+    const rows = loadedMovements.filter(movement => {
+      const time = new Date(movement.created_at).getTime();
+      return (type === "all" || movement.movement_type === type) &&
+        (fromTime === null || time >= fromTime) &&
+        (toTime === null || time <= toTime);
+    });
+    const csvCell = value => '"' + String(value ?? "").replace(/"/g, '""') + '"';
+    const headings = ["Date","Product Code","Product Name","Movement Type","Quantity Change","Stock Before","Stock After","Reason","Reference","Notes"];
+    const csv = "\uFEFF" + [headings, ...rows.map(movement => {
+      const product = Array.isArray(movement.product) ? movement.product[0] : movement.product;
+      return [movement.created_at,product?.product_code,product?.product_name,movement.movement_type,
+        movement.quantity_change,movement.stock_before,movement.stock_after,movement.reason_code,
+        movement.reference_number,movement.notes];
+    })].map(row => row.map(csvCell).join(",")).join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "inventory-stock-movements-" + new Date().toISOString().slice(0,10) + ".csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    notify("Stock movement CSV exported.");
+  };
 
   historyButton.onclick = async () => {
     historyPanel.hidden = !historyPanel.hidden;
