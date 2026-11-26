@@ -1886,6 +1886,7 @@ supabase.auth.onAuthStateChange((event) => {
 
     showLogin();
     loginForm.reset();
+    setAuthMode("login");
     showMessage("You have been signed out.");
   }
 });
