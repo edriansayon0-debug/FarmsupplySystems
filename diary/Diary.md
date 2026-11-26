@@ -32,3 +32,5 @@
 2026-11-26 — Added the Organization A customer favorites feature foundation: created `customer_favorites` with customer-owned RLS policies and added Saved Favorites navigation, product heart controls, and a saved-only product view; updated `FarmsupplySystems-UI-Starter/index.html`, `auth.js`, and `styles.css`.
 2026-11-26 — Fixed Saved Favorites view to clear previous product search/category filters when opened, ensuring saved items are not hidden by stale shop filters.
 2026-11-26 — Fixed Saved Favorites product visibility by explicitly applying card display state alongside `hidden` and adding a hidden-card CSS override; updated customer portal `auth.js` and `styles.css`.
+
+2026-11-26 — Refined customer My Purchases order cards with readable order status/payment labels, corrected Pickup fulfillment wording, itemized lines, and responsive metadata styling; updated customer portal `auth.js` and `styles.css`.
