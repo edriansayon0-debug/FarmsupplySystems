@@ -1031,9 +1031,14 @@ function createOrderHistoryElements() {
       </button>
     </div>
 
-    <div id="customerOrderHistoryList" style="margin-top:15px">
-      Loading your orders...
+    <div class="customer-order-history-tools" aria-label="Search and filter orders">
+      <label class="customer-order-history-search"><span>Search order number</span><input id="customerOrderSearch" type="search" placeholder="Enter order number..." autocomplete="off"></label>
+      <label><span>Order status</span><select id="customerOrderStatusFilter"><option value="all">All statuses</option><option value="pending">Awaiting Review</option><option value="approved">Approved</option><option value="ready_for_pickup">Ready for Pickup</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option><option value="rejected">Not Approved</option></select></label>
+      <label><span>Fulfillment</span><select id="customerOrderFulfillmentFilter"><option value="all">Delivery & Pickup</option><option value="delivery">Delivery</option><option value="pickup">Pickup</option></select></label>
+      <button type="button" id="resetCustomerOrderFilters" class="customer-order-filter-reset">Reset filters</button>
+      <p id="customerOrderFilterCount" class="customer-order-filter-count" aria-live="polite"></p>
     </div>
+    <div id="customerOrderHistoryList" style="margin-top:15px">Loading your orders...</div>
   `;
 
   const historyMount = document.getElementById("customerOrderHistoryMount");
