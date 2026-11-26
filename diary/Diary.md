@@ -41,3 +41,4 @@
 
 2026-11-26 — Added customer My Account profile form for editable full name and contact number with read-only sign-in email, owner-scoped customer_profiles update, refreshed portal name/avatar after save, and responsive styling; updated customer portal `auth.js` and `styles.css`.
 2026-11-26 — Added customer_profiles.delivery_address with existing customer-owned RLS protection; My Account now saves the optional delivery address and delivery checkout prefills it while preserving it when switching to pickup; updated customer portal auth.js and styles.css.
+2026-11-26 — Added expandable My Purchases order details with order reference, subtotal, saved delivery address/order notes when present, and item unit-price breakdown; existing order history and Buy Again behavior remain intact. Updated customer portal auth.js and styles.css.
