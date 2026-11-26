@@ -805,12 +805,14 @@
 .customer-account-profile-field label {
   color: #405344; font-size: 12px; font-weight: 700;
 }
-.customer-account-profile-field input {
+.customer-account-profile-field input,
+.customer-account-profile-field textarea {
   width: 100%; min-height: 42px; padding: 10px 12px;
   border: 1px solid #dfe6df; border-radius: 9px; background: #fff;
   color: #263d2d; font: inherit; font-size: 13px; box-sizing: border-box;
 }
-.customer-account-profile-field input:focus {
+.customer-account-profile-field input:focus,
+.customer-account-profile-field textarea:focus {
   outline: 2px solid rgba(55, 105, 69, .18); border-color: #527b5b;
 }
 .customer-account-profile-field input:disabled {
