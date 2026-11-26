@@ -464,7 +464,16 @@ async function loadCustomerProducts() {
     addButton.disabled = Number(product.stock_quantity) <= 0;
     addButton.addEventListener("click", () => addToCart(product.id));
 
-    card.append(media, category, name, description, price, stock, addButton);
+    const quickViewButton = document.createElement("button");
+    quickViewButton.type = "button";
+    quickViewButton.className = "shop-quick-view-button";
+    quickViewButton.textContent = "Quick view";
+    quickViewButton.addEventListener("click", event => {
+      event.stopPropagation();
+      openCustomerProductQuickView(product);
+    });
+
+    card.append(media, category, name, description, price, stock, addButton, quickViewButton);
     card.addEventListener("click", () => recordRecentlyViewedProduct(product.id));
     grid.appendChild(card);
   });
@@ -473,6 +482,108 @@ async function loadCustomerProducts() {
   renderRecentlyViewedProducts();
   applyCustomerProductView();
   renderCart();
+}
+
+function closeCustomerProductQuickView() {
+  const modal = document.getElementById("customerProductQuickView");
+  if (!modal) return;
+  modal.hidden = true;
+  modal.setAttribute("aria-hidden", "true");
+}
+
+function openCustomerProductQuickView(product) {
+  if (!product) return;
+  recordRecentlyViewedProduct(product.id);
+
+  let modal = document.getElementById("customerProductQuickView");
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "customerProductQuickView";
+    modal.className = "shop-quick-view-overlay";
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    modal.innerHTML = `
+      <section class="shop-quick-view-dialog" role="dialog" aria-modal="true" aria-labelledby="shopQuickViewTitle" tabindex="-1">
+        <button type="button" class="shop-quick-view-close" aria-label="Close product details">×</button>
+        <div class="shop-quick-view-content">
+          <div class="shop-quick-view-media"></div>
+          <div class="shop-quick-view-info">
+            <span class="shop-quick-view-category"></span>
+            <h2 id="shopQuickViewTitle"></h2>
+            <p class="shop-quick-view-description"></p>
+            <strong class="shop-quick-view-price"></strong>
+            <p class="shop-quick-view-stock"></p>
+            <div class="shop-quick-view-quantity">
+              <button type="button" class="shop-quick-view-minus" aria-label="Decrease quantity">−</button>
+              <output class="shop-quick-view-qty" aria-live="polite">1</output>
+              <button type="button" class="shop-quick-view-plus" aria-label="Increase quantity">+</button>
+            </div>
+            <button type="button" class="shop-quick-view-add shop-add-button">Add to Cart</button>
+          </div>
+        </div>
+      </section>
+    `;
+    document.body.appendChild(modal);
+    modal.querySelector(".shop-quick-view-close").addEventListener("click", closeCustomerProductQuickView);
+    modal.addEventListener("click", event => {
+      if (event.target === modal) closeCustomerProductQuickView();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && !modal.hidden) closeCustomerProductQuickView();
+    });
+  }
+
+  const dialog = modal.querySelector(".shop-quick-view-dialog");
+  const media = modal.querySelector(".shop-quick-view-media");
+  media.replaceChildren();
+  if (product.image_url) {
+    const image = document.createElement("img");
+    image.src = product.image_url;
+    image.alt = product.product_name;
+    image.addEventListener("error", () => {
+      image.remove();
+      media.textContent = "Farm supply";
+    }, { once: true });
+    media.appendChild(image);
+  } else {
+    media.textContent = "Farm supply";
+  }
+
+  modal.querySelector(".shop-quick-view-category").textContent = product.category || "Farm supply";
+  modal.querySelector(".shop-quick-view-info h2").textContent = product.product_name;
+  modal.querySelector(".shop-quick-view-description").textContent = product.description || "No description available.";
+  modal.querySelector(".shop-quick-view-price").textContent = formatMoney(product.price);
+  const stock = Math.max(0, Number(product.stock_quantity) || 0);
+  modal.querySelector(".shop-quick-view-stock").textContent = "Available stock: " + stock + " " + (product.unit || "piece");
+  const quantityOutput = modal.querySelector(".shop-quick-view-qty");
+  const minus = modal.querySelector(".shop-quick-view-minus");
+  const plus = modal.querySelector(".shop-quick-view-plus");
+  const add = modal.querySelector(".shop-quick-view-add");
+  let quantity = 1;
+  const updateQuantity = () => {
+    quantityOutput.textContent = String(quantity);
+    minus.disabled = quantity <= 1;
+    plus.disabled = quantity >= stock;
+    add.disabled = stock <= 0;
+    add.textContent = stock > 0 ? "Add " + quantity + " to Cart" : "Out of Stock";
+  };
+  minus.onclick = () => { quantity = Math.max(1, quantity - 1); updateQuantity(); };
+  plus.onclick = () => { quantity = Math.min(stock, quantity + 1); updateQuantity(); };
+  add.onclick = () => {
+    const existing = customerCart.get(product.id);
+    const inCart = existing ? existing.quantity : 0;
+    if (inCart + quantity > stock) {
+      alert("Your cart quantity plus this amount exceeds available stock.");
+      return;
+    }
+    customerCart.set(product.id, { product, quantity: inCart + quantity });
+    renderCart();
+    closeCustomerProductQuickView();
+  };
+  updateQuantity();
+  modal.hidden = false;
+  modal.setAttribute("aria-hidden", "false");
+  dialog.focus();
 }
 
 function recordRecentlyViewedProduct(productId) {
