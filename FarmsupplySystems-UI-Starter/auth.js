@@ -167,7 +167,7 @@ async function loadAdminProfile(user) {
 async function loadCustomerProfile(user) {
   const { data: profile, error } = await supabase
     .from("customer_profiles")
-    .select("id, full_name, phone")
+    .select("id, full_name, phone, delivery_address")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -830,6 +830,11 @@ function createCustomerAccountElements() {
         <label for="customerProfilePhone">Contact number</label>
         <input id="customerProfilePhone" type="tel" maxlength="30" autocomplete="tel" placeholder="Enter your contact number">
       </div>
+      <div class="customer-account-profile-field customer-account-profile-address-field">
+        <label for="customerProfileDeliveryAddress">Saved delivery address</label>
+        <textarea id="customerProfileDeliveryAddress" rows="3" maxlength="500" autocomplete="street-address" placeholder="House or unit, street, barangay, city, province"></textarea>
+        <small>This address will be filled in automatically for delivery checkout. You can edit it before placing an order.</small>
+      </div>
       <div class="customer-account-profile-actions">
         <p id="customerAccountProfileMessage" role="status" aria-live="polite"></p>
         <button type="submit" id="saveCustomerAccountProfile" class="customer-account-profile-save">Save changes</button>
@@ -846,11 +851,13 @@ function createCustomerAccountElements() {
   const emailInput = document.getElementById("customerProfileEmail");
   const nameInput = document.getElementById("customerProfileFullName");
   const phoneInput = document.getElementById("customerProfilePhone");
+  const addressInput = document.getElementById("customerProfileDeliveryAddress");
   const message = document.getElementById("customerAccountProfileMessage");
   const saveButton = document.getElementById("saveCustomerAccountProfile");
 
   nameInput.value = currentCustomer?.full_name || "";
   phoneInput.value = currentCustomer?.phone || "";
+  addressInput.value = currentCustomer?.delivery_address || "";
 
   supabase.auth.getUser().then(({ data, error }) => {
     if (!error && emailInput) emailInput.value = data.user?.email || "";
@@ -862,6 +869,7 @@ function createCustomerAccountElements() {
 
     const fullName = nameInput.value.trim();
     const phone = phoneInput.value.trim();
+    const deliveryAddress = addressInput.value.trim();
     if (!fullName) {
       message.textContent = "Please enter your full name.";
       return;
@@ -876,10 +884,11 @@ function createCustomerAccountElements() {
         .update({
           full_name: fullName,
           phone: phone || null,
+          delivery_address: deliveryAddress || null,
           updated_at: new Date().toISOString()
         })
         .eq("id", currentCustomer.id)
-        .select("id, full_name, phone")
+        .select("id, full_name, phone, delivery_address")
         .maybeSingle();
 
       if (error) throw error;
@@ -1324,7 +1333,8 @@ function openCheckout() {
   renderCheckoutSummary();
   document.getElementById("checkoutMessage").textContent = "";
   document.getElementById("checkoutFulfillment").value = "delivery";
-  document.getElementById("checkoutAddress").value = "";
+  document.getElementById("checkoutAddress").value =
+    currentCustomer?.delivery_address || "";
   document.getElementById("checkoutNotes").value = "";
 
   updateCheckoutFields();
@@ -1356,7 +1366,6 @@ function updateCheckoutFields() {
     label.style.display = "none";
     address.style.display = "none";
     address.required = false;
-    address.value = "";
     payment.value = "Pay upon Pickup";
     if (paymentNote) {
       paymentNote.textContent = "Payment will be collected when you pick up your order.";
