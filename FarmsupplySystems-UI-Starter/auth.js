@@ -542,6 +542,37 @@ function addPreviousOrderToCart(orderItems) {
   alert(messages.join('\n'));
 }
 
+function applyCustomerOrderFilters() {
+  const container = document.getElementById("customerOrderHistoryList");
+  if (!container) return;
+  const query = (document.getElementById("customerOrderSearch").value || "").trim().toLowerCase();
+  const status = document.getElementById("customerOrderStatusFilter").value;
+  const fulfillment = document.getElementById("customerOrderFulfillmentFilter").value;
+  const cards = Array.from(container.querySelectorAll(".customer-order-card"));
+  let visible = 0;
+  cards.forEach(card => {
+    const matchNumber = !query || (card.dataset.orderNumber || "").toLowerCase().includes(query);
+    const matchStatus = status === "all" || card.dataset.orderStatus === status;
+    const matchFulfillment = fulfillment === "all" || card.dataset.fulfillment === fulfillment;
+    const show = matchNumber && matchStatus && matchFulfillment;
+    card.hidden = !show;
+    card.style.display = show ? "" : "none";
+    if (show) visible++;
+  });
+  const count = document.getElementById("customerOrderFilterCount");
+  if (count) count.textContent = cards.length ? "Showing " + visible + " of " + cards.length + " order(s)" : "";
+  let empty = container.querySelector(".customer-order-filter-empty");
+  if (cards.length && visible === 0) {
+    if (!empty) {
+      empty = document.createElement("p");
+      empty.className = "customer-order-empty customer-order-filter-empty";
+      empty.textContent = "No orders match your search or filters.";
+      container.appendChild(empty);
+    }
+    empty.hidden = false;
+  } else if (empty) empty.hidden = true;
+}
+
 async function loadCustomerOrderHistory() {
   const container = document.getElementById("customerOrderHistoryList");
   if (!container || !currentCustomer) return;
@@ -603,6 +634,9 @@ async function loadCustomerOrderHistory() {
     orders.forEach(order => {
       const card = document.createElement("article");
       card.className = "customer-order-card";
+      card.dataset.orderNumber = String(order.order_number || order.id);
+      card.dataset.orderStatus = String(order.order_status || "pending").toLowerCase();
+      card.dataset.fulfillment = String(order.fulfillment_method || "delivery").toLowerCase();
 
       const header = document.createElement("div");
       header.className = "customer-order-card-header";
@@ -729,6 +763,7 @@ async function loadCustomerOrderHistory() {
       card.append(header, metadata, itemsSection, footer, detailsButton, detailsPanel, buyAgainButton);
       container.appendChild(card);
     });
+    applyCustomerOrderFilters();
   } catch (error) {
     console.error("Order history error:", error);
     container.textContent = "Unable to load your order history. Please try again.";
@@ -1004,8 +1039,19 @@ function createOrderHistoryElements() {
   const historyMount = document.getElementById("customerOrderHistoryMount");
   (historyMount || customerProducts.parentElement).appendChild(section);
 
-  document.getElementById("refreshCustomerOrders")
-    .addEventListener("click", loadCustomerOrderHistory);
+  document.getElementById("refreshCustomerOrders").addEventListener("click", loadCustomerOrderHistory);
+  const search = document.getElementById("customerOrderSearch");
+  const statusFilter = document.getElementById("customerOrderStatusFilter");
+  const fulfillmentFilter = document.getElementById("customerOrderFulfillmentFilter");
+  search.addEventListener("input", applyCustomerOrderFilters);
+  statusFilter.addEventListener("change", applyCustomerOrderFilters);
+  fulfillmentFilter.addEventListener("change", applyCustomerOrderFilters);
+  document.getElementById("resetCustomerOrderFilters").addEventListener("click", () => {
+    search.value = "";
+    statusFilter.value = "all";
+    fulfillmentFilter.value = "all";
+    applyCustomerOrderFilters();
+  });
 }
 
 // ==========================================
