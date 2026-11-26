@@ -555,6 +555,7 @@ async function loadCustomerProducts() {
   });
 
   customerProducts.appendChild(grid);
+  applyCustomerProductSort();
   renderRecentlyViewedProducts();
   renderCustomerCompareTray();
   applyCustomerProductView();
@@ -1324,33 +1325,54 @@ customerSearch?.addEventListener("input", applyCustomerProductView);
 document.getElementById("customerAccountButton")?.addEventListener("click", () => {
   document.getElementById("customerAccountProfile")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
-customerSort?.addEventListener("change", () => {
+function applyCustomerProductSort() {
   const grid = customerProducts.querySelector(".shop-product-grid");
   if (!grid) return;
 
-  const sorted = [...availableProducts];
-  const byName = (a, b) => String(a.product_name || "").localeCompare(String(b.product_name || ""));
-  const stockOf = product => Math.max(0, Number(product.stock_quantity) || 0);
+  const sortValue = customerSort?.value || "recommended";
+  const products = [...availableProducts];
+  const stockOf = product => {
+    const value = Number(product.stock_quantity);
+    return Number.isFinite(value) ? Math.max(0, value) : 0;
+  };
+  const nameOf = product => String(product.product_name || "");
+  const byName = (a, b) => nameOf(a).localeCompare(nameOf(b));
 
-  if (customerSort.value === "price-low") {
-    sorted.sort((a, b) => Number(a.price) - Number(b.price) || byName(a, b));
-  } else if (customerSort.value === "price-high") {
-    sorted.sort((a, b) => Number(b.price) - Number(a.price) || byName(a, b));
-  } else if (customerSort.value === "name") {
-    sorted.sort(byName);
-  } else if (customerSort.value === "stock-available") {
-    sorted.sort((a, b) =>
-      Number(stockOf(b) > 0) - Number(stockOf(a) > 0) ||
-      stockOf(b) - stockOf(a) ||
-      byName(a, b)
-    );
+  if (sortValue === "price-low") {
+    products.sort((a, b) => Number(a.price) - Number(b.price) || byName(a, b));
+  } else if (sortValue === "price-high") {
+    products.sort((a, b) => Number(b.price) - Number(a.price) || byName(a, b));
+  } else if (sortValue === "name") {
+    products.sort(byName);
+  } else if (sortValue === "stock-available") {
+    products.sort((a, b) => {
+      const aStock = stockOf(a);
+      const bStock = stockOf(b);
+
+      // Explicitly put zero-stock products after every product with stock.
+      if (aStock <= 0 && bStock > 0) return 1;
+      if (aStock > 0 && bStock <= 0) return -1;
+
+      // Within each group, show higher stock first; use name for ties.
+      return bStock - aStock || byName(a, b);
+    });
   }
 
-  const order = new Map(sorted.map((product, index) => [String(product.id), index]));
-  Array.from(grid.children)
-    .sort((a, b) => (order.get(String(a.dataset.productId)) ?? 0) - (order.get(String(b.dataset.productId)) ?? 0))
-    .forEach(card => grid.appendChild(card));
+  const productOrder = new Map(
+    products.map((product, index) => [String(product.id), index])
+  );
+  const cards = Array.from(grid.children);
+  cards.sort((a, b) => {
+    const aOrder = productOrder.get(String(a.dataset.productId));
+    const bOrder = productOrder.get(String(b.dataset.productId));
+    return (aOrder ?? Number.MAX_SAFE_INTEGER) -
+      (bOrder ?? Number.MAX_SAFE_INTEGER);
+  });
+  cards.forEach(card => grid.appendChild(card));
+}
 
+customerSort?.addEventListener("change", () => {
+  applyCustomerProductSort();
   applyCustomerProductView();
 });
 
