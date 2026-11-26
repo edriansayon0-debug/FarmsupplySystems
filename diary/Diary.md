@@ -36,3 +36,5 @@
 2026-11-26 — Refined customer My Purchases order cards with readable order status/payment labels, corrected Pickup fulfillment wording, itemized lines, and responsive metadata styling; updated customer portal `auth.js` and `styles.css`.
 
 2026-11-26 — Corrected fallback title-casing for unrecognized customer order/payment statuses in `auth.js` after verification.
+
+2026-11-26 — Added My Purchases Buy Again action to restore prior order quantities into the current cart by matching active catalog products, enforcing available stock, reporting skipped/adjusted items, and scrolling to cart; updated customer portal `auth.js` and `styles.css`.
