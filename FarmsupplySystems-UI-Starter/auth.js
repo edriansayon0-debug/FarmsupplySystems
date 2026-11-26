@@ -498,6 +498,49 @@ function createCustomerOrderMeta(label, value) {
   return item;
 }
 
+function addPreviousOrderToCart(orderItems) {
+  let added = 0;
+  let skipped = 0;
+  let adjusted = 0;
+
+  (orderItems || []).forEach(orderItem => {
+    const name = String(orderItem.product_name || '').trim().toLowerCase();
+    const product = availableProducts.find(item =>
+      String(item.product_name || '').trim().toLowerCase() === name
+    );
+
+    if (!product || Number(product.stock_quantity) <= 0) {
+      skipped += 1;
+      return;
+    }
+
+    const existing = customerCart.get(product.id);
+    const currentQuantity = existing ? existing.quantity : 0;
+    const requestedQuantity = Math.max(1, Number(orderItem.quantity) || 1);
+    const availableQuantity = Math.max(0, Number(product.stock_quantity) - currentQuantity);
+    const quantityToAdd = Math.min(requestedQuantity, availableQuantity);
+
+    if (quantityToAdd <= 0) {
+      skipped += 1;
+      return;
+    }
+
+    customerCart.set(product.id, { product, quantity: currentQuantity + quantityToAdd });
+    added += 1;
+    if (quantityToAdd < requestedQuantity) adjusted += 1;
+  });
+
+  renderCart();
+  document.getElementById('customerCartPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  const messages = [];
+  if (added) messages.push(added + ' product(s) added to your cart.');
+  if (adjusted) messages.push(adjusted + ' product quantity(ies) reduced to available stock.');
+  if (skipped) messages.push(skipped + ' product(s) skipped because unavailable or already at the stock limit.');
+  if (!messages.length) messages.push('No products from this order could be added. Please check current stock.');
+  alert(messages.join('\n'));
+}
+
 async function loadCustomerOrderHistory() {
   const container = document.getElementById("customerOrderHistoryList");
   if (!container || !currentCustomer) return;
@@ -623,7 +666,15 @@ async function loadCustomerOrderHistory() {
       total.textContent = formatMoney(order.total_amount);
       footer.append(totalLabel, total);
 
-      card.append(header, metadata, itemsSection, footer);
+      const buyAgainButton = document.createElement('button');
+      buyAgainButton.type = 'button';
+      buyAgainButton.className = 'customer-order-buy-again';
+      buyAgainButton.textContent = 'Buy Again';
+      buyAgainButton.addEventListener('click', () => {
+        addPreviousOrderToCart(itemsByOrder.get(order.id) || []);
+      });
+
+      card.append(header, metadata, itemsSection, footer, buyAgainButton);
       container.appendChild(card);
     });
   } catch (error) {
