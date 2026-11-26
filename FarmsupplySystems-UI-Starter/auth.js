@@ -35,6 +35,7 @@ let availableProducts = [];
 let customerCart = new Map();
 let favoriteProductIds = new Set();
 let showFavoritesOnly = false;
+let recentlyViewedProductIds = [];
 
 // ==========================================
 // SCREEN MANAGEMENT
@@ -369,6 +370,16 @@ async function loadCustomerProducts() {
   }
 
   availableProducts = products || [];
+  try {
+    const savedRecent = localStorage.getItem("stpb_recent_products_" + currentCustomer.id);
+    recentlyViewedProductIds = savedRecent ? JSON.parse(savedRecent) : [];
+    if (!Array.isArray(recentlyViewedProductIds)) recentlyViewedProductIds = [];
+  } catch {
+    recentlyViewedProductIds = [];
+  }
+  recentlyViewedProductIds = recentlyViewedProductIds
+    .filter(id => availableProducts.some(product => String(product.id) === String(id)))
+    .slice(0, 5);
   await loadCustomerFavorites();
   customerProducts.replaceChildren();
 
@@ -454,12 +465,89 @@ async function loadCustomerProducts() {
     addButton.addEventListener("click", () => addToCart(product.id));
 
     card.append(media, category, name, description, price, stock, addButton);
+    card.addEventListener("click", () => recordRecentlyViewedProduct(product.id));
     grid.appendChild(card);
   });
 
   customerProducts.appendChild(grid);
+  renderRecentlyViewedProducts();
   applyCustomerProductView();
   renderCart();
+}
+
+function recordRecentlyViewedProduct(productId) {
+  if (!currentCustomer || !productId) return;
+  recentlyViewedProductIds = [
+    String(productId),
+    ...recentlyViewedProductIds.filter(id => String(id) !== String(productId))
+  ].slice(0, 5);
+
+  try {
+    localStorage.setItem(
+      "stpb_recent_products_" + currentCustomer.id,
+      JSON.stringify(recentlyViewedProductIds)
+    );
+  } catch (error) {
+    console.warn("Recently viewed products could not be saved:", error);
+  }
+
+  renderRecentlyViewedProducts();
+}
+
+function renderRecentlyViewedProducts() {
+  if (!customerProducts) return;
+  const grid = customerProducts.querySelector(".shop-product-grid");
+  if (!grid) return;
+
+  let section = document.getElementById("customerRecentlyViewed");
+  if (!section) {
+    section = document.createElement("section");
+    section.id = "customerRecentlyViewed";
+    section.className = "shop-recently-viewed";
+    const heading = document.createElement("h3");
+    heading.textContent = "Recently viewed";
+    const list = document.createElement("div");
+    list.className = "shop-recently-viewed-list";
+    section.append(heading, list);
+    customerProducts.insertBefore(section, grid);
+  }
+
+  const list = section.querySelector(".shop-recently-viewed-list");
+  list.replaceChildren();
+  const recentProducts = recentlyViewedProductIds
+    .map(id => availableProducts.find(product => String(product.id) === String(id)))
+    .filter(Boolean);
+
+  section.hidden = recentProducts.length === 0;
+  recentProducts.forEach(product => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "shop-recently-viewed-item";
+    const name = document.createElement("span");
+    name.textContent = product.product_name;
+    const price = document.createElement("strong");
+    price.textContent = formatMoney(product.price);
+    button.append(name, price);
+    button.addEventListener("click", () => {
+      showFavoritesOnly = false;
+      if (customerSearch) customerSearch.value = "";
+      selectedCustomerCategory = "all";
+      document.querySelectorAll("[data-shop-filter]").forEach(filter => {
+        filter.classList.toggle("active", filter.dataset.shopFilter === "all");
+      });
+      document.querySelectorAll("[data-customer-view]").forEach(link => {
+        link.classList.toggle("active", link.dataset.customerView === "shop");
+      });
+      const heading = document.querySelector(".shop-products-heading h2");
+      if (heading) heading.textContent = "Available products";
+      applyCustomerProductView();
+      const card = Array.from(grid.children).find(item =>
+        String(item.dataset.productId) === String(product.id)
+      );
+      card?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    list.appendChild(button);
+  });
 }
 
 function customerOrderStatusLabel(status) {
