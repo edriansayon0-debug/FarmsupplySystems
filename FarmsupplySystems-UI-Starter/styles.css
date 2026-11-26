@@ -618,3 +618,7 @@
 .shop-favorite-button.is-saved{background:#fff0ed;color:#bd554c;border-color:#f2d6d0}
 .shop-favorite-button:disabled{opacity:.55;cursor:wait}
 .shop-product-empty{grid-column:1/-1;padding:25px 18px;border:1px dashed #dce5d8;border-radius:12px;background:#fbfcf9;color:#718170;text-align:center;font-size:11px;line-height:1.6}
+
+
+/* Ensure filtered product cards stay hidden despite card layout styling */
+.shop-product-card[hidden]{display:none!important}
