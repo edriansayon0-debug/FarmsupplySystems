@@ -653,15 +653,6 @@ function formatMoney(amount) {
 function createCartElements() {
   if (document.getElementById("customerCartPanel")) return;
 
-  const style = document.createElement("style");
-  style.textContent = `
-    .checkout-overlay { display:none; position:fixed; inset:0; background:#14251dcc; z-index:9999; align-items:center; justify-content:center; padding:15px; }
-    .checkout-overlay.open { display:flex; }
-    .checkout-box { background:white; padding:26px; border-radius:18px; width:min(100%,500px); max-height:90vh; overflow:auto; }
-    .checkout-input { width:100%; box-sizing:border-box; padding:11px 12px; margin:6px 0 14px; border:1px solid #dce3d8; border-radius:8px; font:inherit; }
-  `;
-  document.head.appendChild(style);
-
   const panel = document.createElement("section");
   panel.id = "customerCartPanel";
   panel.className = "cart-panel shop-cart-card";
@@ -699,39 +690,71 @@ function createCartElements() {
   modal.className = "checkout-overlay";
 
   modal.innerHTML = `
-    <div class="checkout-box">
-      <h2>Checkout</h2>
-      <p id="checkoutSummary"></p>
+    <section class="checkout-box" role="dialog" aria-modal="true"
+      aria-labelledby="checkoutTitle" tabindex="-1">
+      <div class="checkout-header">
+        <div>
+          <span class="checkout-eyebrow">ORDER REVIEW</span>
+          <h2 id="checkoutTitle">Complete your order</h2>
+          <p>Confirm your items and choose how you would like to receive them.</p>
+        </div>
+        <button type="button" class="checkout-close" id="closeCheckout"
+          aria-label="Close checkout">×</button>
+      </div>
 
-      <label>Fulfillment Method</label>
-      <select id="checkoutFulfillment" class="checkout-input">
-        <option value="delivery">Delivery</option>
-        <option value="pickup">Pay upon Pickup</option>
-      </select>
+      <div class="checkout-order-summary">
+        <div class="checkout-summary-heading">
+          <strong>Order summary</strong>
+          <span id="checkoutItemCount">0 items</span>
+        </div>
+        <div id="checkoutSummary" class="checkout-summary-items"></div>
+        <div class="checkout-summary-total">
+          <span>Subtotal</span>
+          <strong id="checkoutTotal">₱0.00</strong>
+        </div>
+      </div>
 
-      <label>Payment Method</label>
-      <input id="checkoutPayment" class="checkout-input"
-        value="Cash on Delivery" readonly>
+      <div class="checkout-section">
+        <h3>Delivery or pickup</h3>
+        <label for="checkoutFulfillment">Fulfillment method</label>
+        <select id="checkoutFulfillment" class="checkout-input">
+          <option value="delivery">Delivery</option>
+          <option value="pickup">Pickup</option>
+        </select>
 
-      <label id="checkoutAddressLabel">Delivery Address</label>
-      <textarea id="checkoutAddress" class="checkout-input"
-        rows="3" placeholder="Enter your complete address"></textarea>
+        <label for="checkoutPayment">Payment method</label>
+        <input id="checkoutPayment" class="checkout-input"
+          value="Cash on Delivery" readonly aria-readonly="true">
+        <p class="checkout-field-note" id="checkoutPaymentNote">
+          Payment will be collected when your order is delivered.
+        </p>
 
-      <label>Order Notes (Optional)</label>
-      <textarea id="checkoutNotes" class="checkout-input"
-        rows="2"></textarea>
+        <div class="checkout-address-group">
+          <label id="checkoutAddressLabel" for="checkoutAddress">Delivery address</label>
+          <textarea id="checkoutAddress" class="checkout-input"
+            rows="3" placeholder="Enter your complete delivery address"
+            autocomplete="street-address"></textarea>
+        </div>
 
-      <p id="checkoutMessage"></p>
+        <label for="checkoutNotes">Order notes <span>(optional)</span></label>
+        <textarea id="checkoutNotes" class="checkout-input checkout-notes"
+          rows="2" placeholder="Any instructions for your order?"></textarea>
+      </div>
 
-      <button type="button" id="cancelCheckout">
-        Back to Cart
-      </button>
+      <p id="checkoutMessage" class="checkout-message" role="alert"
+        aria-live="polite"></p>
 
-      <button type="button" class="cart-action-button"
-        id="placeCustomerOrder">
-        Place Order
-      </button>
-    </div>
+      <div class="checkout-actions">
+        <button type="button" id="cancelCheckout" class="checkout-back-button">
+          Back to cart
+        </button>
+        <button type="button" class="cart-action-button checkout-place-button"
+          id="placeCustomerOrder">
+          Place order <span aria-hidden="true">→</span>
+        </button>
+      </div>
+      <p class="checkout-footnote">Your order will be submitted securely for processing.</p>
+    </section>
   `;
 
   document.body.appendChild(modal);
@@ -739,11 +762,24 @@ function createCartElements() {
   document.getElementById("cancelCheckout")
     .addEventListener("click", closeCheckout);
 
+  document.getElementById("closeCheckout")
+    .addEventListener("click", closeCheckout);
+
   document.getElementById("placeCustomerOrder")
     .addEventListener("click", submitCustomerOrder);
 
   document.getElementById("checkoutFulfillment")
     .addEventListener("change", updateCheckoutFields);
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) closeCheckout();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && modal.classList.contains("open")) {
+      closeCheckout();
+    }
+  });
 }
 
 function getCartTotal() {
@@ -944,18 +980,39 @@ function renderCart() {
 // CHECKOUT
 // ==========================================
 
+function renderCheckoutSummary() {
+  const summary = document.getElementById("checkoutSummary");
+  const countElement = document.getElementById("checkoutItemCount");
+  const totalElement = document.getElementById("checkoutTotal");
+  if (!summary || !countElement || !totalElement) return;
+
+  summary.replaceChildren();
+
+  let itemCount = 0;
+  customerCart.forEach(({ product, quantity }) => {
+    itemCount += quantity;
+
+    const row = document.createElement("div");
+    row.className = "checkout-summary-row";
+
+    const itemName = document.createElement("span");
+    itemName.textContent = `${product.product_name} × ${quantity}`;
+
+    const itemTotal = document.createElement("strong");
+    itemTotal.textContent = formatMoney(Number(product.price) * quantity);
+
+    row.append(itemName, itemTotal);
+    summary.appendChild(row);
+  });
+
+  countElement.textContent = `${itemCount} ${itemCount === 1 ? "item" : "items"}`;
+  totalElement.textContent = formatMoney(getCartTotal());
+}
+
 function openCheckout() {
   if (customerCart.size === 0) return;
 
-  const summary = Array.from(customerCart.values())
-    .map(({ product, quantity }) =>
-      `${product.product_name} × ${quantity}`
-    )
-    .join(", ");
-
-  document.getElementById("checkoutSummary").textContent =
-    `${summary} | Total: ${formatMoney(getCartTotal())}`;
-
+  renderCheckoutSummary();
   document.getElementById("checkoutMessage").textContent = "";
   document.getElementById("checkoutFulfillment").value = "delivery";
   document.getElementById("checkoutAddress").value = "";
@@ -963,13 +1020,15 @@ function openCheckout() {
 
   updateCheckoutFields();
 
-  document.getElementById("customerCheckoutModal")
-    .classList.add("open");
+  const modal = document.getElementById("customerCheckoutModal");
+  modal.classList.add("open");
+  modal.querySelector(".checkout-box")?.focus();
 }
 
 function closeCheckout() {
   document.getElementById("customerCheckoutModal")
     .classList.remove("open");
+  document.getElementById("customerCheckoutButton")?.focus();
 }
 
 function updateCheckoutFields() {
@@ -980,17 +1039,28 @@ function updateCheckoutFields() {
   const label = document.getElementById("checkoutAddressLabel");
   const payment = document.getElementById("checkoutPayment");
 
+  const addressGroup = document.querySelector(".checkout-address-group");
+  const paymentNote = document.getElementById("checkoutPaymentNote");
+
   if (fulfillment === "pickup") {
+    if (addressGroup) addressGroup.style.display = "none";
     label.style.display = "none";
     address.style.display = "none";
     address.required = false;
     address.value = "";
     payment.value = "Pay upon Pickup";
+    if (paymentNote) {
+      paymentNote.textContent = "Payment will be collected when you pick up your order.";
+    }
   } else {
+    if (addressGroup) addressGroup.style.display = "block";
     label.style.display = "block";
     address.style.display = "block";
     address.required = true;
     payment.value = "Cash on Delivery";
+    if (paymentNote) {
+      paymentNote.textContent = "Payment will be collected when your order is delivered.";
+    }
   }
 }
 
