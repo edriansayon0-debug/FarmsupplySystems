@@ -1204,7 +1204,7 @@ function renderDashboardRecentOrders() {
   }
   tbody.innerHTML = recent.map(order => {
     const customer = dashboardCustomers.find(c => c.auth_user_id === order.customer_id);
-    const name = customer ? (customer.business_name || customer.full_name || "Customer") : "Customer";
+    const name = organizationCustomerDisplayName(customer);
     const date = order.created_at ? new Date(order.created_at).toLocaleDateString("en-PH", {
       year: "numeric", month: "short", day: "numeric"
     }) : "—";
@@ -2377,6 +2377,14 @@ function getOrganizationCustomerPaidTotal(customer) {
     }, 0);
 }
 
+function organizationCustomerDisplayName(customer) {
+  if (!customer) return "Customer";
+
+  return customer.customer_type === "business"
+    ? (customer.business_name || customer.full_name || "Customer")
+    : (customer.full_name || customer.business_name || "Customer");
+}
+
 async function fetchOrganizationCustomers() {
   const { data: customerData, error: customerError } =
     await supabase
@@ -2435,8 +2443,7 @@ customers = organizationCustomers
   .filter((customer) => customer.auth_user_id)
   .map((customer) => ({
     id: customer.auth_user_id,
-    full_name:
-      customer.business_name || customer.full_name || "Customer",
+    full_name: organizationCustomerDisplayName(customer),
     phone: customer.phone,
   }));
 
@@ -2497,7 +2504,7 @@ const filtered = organizationCustomers.filter((customer) => {
 
 row.innerHTML = `
   <td class="ref">${safeText(customer.id.slice(0, 8).toUpperCase())}</td>
-  <td>${safeText(customer.business_name || customer.full_name)}</td>
+  <td>${safeText(organizationCustomerDisplayName(customer))}</td>
   <td>${safeText(customer.customer_type)}</td>
   <td>${money(getOrganizationCustomerPaidTotal(customer))}</td>
   <td>
@@ -2551,7 +2558,7 @@ function renderOrganizationCustomerDetails() {
   }
 
   document.getElementById("organizationCustomerDetailsTitle").textContent =
-    customer.business_name || customer.full_name;
+    organizationCustomerDisplayName(customer);
 
   document.getElementById("organizationCustomerDetailsSubtitle").textContent =
     customer.customer_type === "business"
