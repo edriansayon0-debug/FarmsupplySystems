@@ -1683,7 +1683,7 @@ function updateCheckoutFields() {
   }
 }
 
-async function submitCustomerOrder() {
+async async function submitCustomerOrder() {
   if (customerCart.size === 0) return;
 
   const button = document.getElementById("placeCustomerOrder");
