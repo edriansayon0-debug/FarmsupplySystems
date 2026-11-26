@@ -48,3 +48,4 @@
 2026-11-26 — Added product quick-view modal to the customer catalog with product image/details, stock display, quantity selector, and stock-validated multi-quantity Add to Cart; preserves catalog filters and checkout flow. Updated auth.js and styles.css.\n
 2026-11-26 — Fixed customer checkout order submission syntax by marking `submitCustomerOrder` async in `FarmsupplySystems-UI-Starter/auth.js` so its order RPC and post-order refresh awaits parse correctly.
 2026-11-26 — Fixed async declarations for `checkSession` and `signOutUser` in `FarmsupplySystems-UI-Starter/auth.js`, preventing additional module syntax errors.
+2026-11-26 — Validation found duplicated `async` keywords introduced during the syntax fix; restored single `async` declarations for `submitCustomerOrder`, `checkSession`, and `signOutUser` in `auth.js`.
