@@ -108,7 +108,7 @@ async function renderInventoryPage() {
     "</section>" +
     "<div class='inventory-bi-layout'>" +
       "<section class='card inventory-ledger'><div class='inventory-section-heading'><div><h3>Master Stock Ledger</h3><p>Current stock across active product catalog</p></div><span id='inventoryLedgerCount'>— products</span></div>" +
-      "<div class='inventory-ledger-tools'><input id='inventorySearch' type='search' placeholder='Search product or SKU...' aria-label='Search products'><select id='inventoryFilter' aria-label='Filter stock status'><option value='all'>All Stock Status</option><option value='in'>In Stock</option><option value='low'>Low Stock</option><option value='out'>Out of Stock</option></select></div>" +
+      "<form class='inventory-threshold-form' id='inventoryThresholdForm'><label for='inventoryThresholdInput'>Low-stock alert threshold</label><div class='inventory-threshold-controls'><input id='inventoryThresholdInput' type='number' min='1' max='100000' step='1' value='10' required><button type='submit' id='inventoryThresholdSave'>Save Threshold</button></div><small id='inventoryThresholdHelp'>Products with stock at or below this quantity are marked low stock.</small></form><div class='inventory-ledger-tools'><input id='inventorySearch' type='search' placeholder='Search product or SKU...' aria-label='Search products'><select id='inventoryFilter' aria-label='Filter stock status'><option value='all'>All Stock Status</option><option value='in'>In Stock</option><option value='low'>Low Stock</option><option value='out'>Out of Stock</option></select></div>" +
       "<div class='tablewrap'><table><thead><tr><th>PROD ID</th><th>PRODUCT NAME</th><th>CATEGORY</th><th>STOCK</th><th>STATUS</th></tr></thead><tbody id='inventoryRows'><tr><td colspan='5'>Loading stock ledger...</td></tr></tbody></table></div>" +
       "<p class='inventory-ledger-note'>Stock quantities shown here are read directly from your live products table.</p></section>" +
       "<aside class='inventory-adjust-column'><section class='card inventory-stock-link'><button type='button' id='inventoryStockView'>View Stock-In / Stock-Out</button></section>" +
@@ -133,10 +133,11 @@ async function renderInventoryPage() {
   const filterSelect = document.getElementById("inventoryFilter");
   const productSelect = document.getElementById("inventoryAdjustProduct");
   let products = [];
+  let lowStockThreshold = 10;
 
   const stockType = product => {
     const qty = Number(product.stock_quantity || 0);
-    return qty <= 0 ? "out" : qty <= 10 ? "low" : "in";
+    return qty <= 0 ? "out" : qty <= lowStockThreshold ? "low" : "in";
   };
   const statusLabel = type => type === "out" ? "Out of Stock" : type === "low" ? "Low Stock" : "In Stock";
 
@@ -166,6 +167,14 @@ async function renderInventoryPage() {
     refreshButton.disabled = true;
     refreshButton.textContent = "Loading...";
     try {
+      const { data: inventorySettings, error: settingsError } = await supabase
+        .from("organization_inventory_settings")
+        .select("low_stock_threshold")
+        .eq("organization_id", ORG_ID)
+        .maybeSingle();
+      if (settingsError) throw settingsError;
+      lowStockThreshold = Number(inventorySettings?.low_stock_threshold ?? 10);
+      document.getElementById("inventoryThresholdInput").value = String(lowStockThreshold);
       products = await fetchDashboardProducts();
       const totalItems = products.reduce((sum, product) => sum + Math.max(0, Number(product.stock_quantity || 0)), 0);
       const availableItems = products.filter(product => stockType(product) === "in")
@@ -190,6 +199,39 @@ async function renderInventoryPage() {
       refreshButton.textContent = "↻ Refresh Stock";
     }
   }
+
+  document.getElementById("inventoryThresholdForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const input = document.getElementById("inventoryThresholdInput");
+    const saveButton = document.getElementById("inventoryThresholdSave");
+    const threshold = Number(input.value);
+    if (!Number.isInteger(threshold) || threshold < 1 || threshold > 100000) {
+      notify("Enter a whole-number threshold from 1 to 100000.");
+      return;
+    }
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const { error } = await supabase.from("organization_inventory_settings").upsert({
+        organization_id: ORG_ID,
+        low_stock_threshold: threshold,
+        updated_at: new Date().toISOString(),
+        updated_by: userData.user?.id || null
+      }, { onConflict: "organization_id" });
+      if (error) throw error;
+      lowStockThreshold = threshold;
+      await loadInventory();
+      notify("Low-stock threshold saved: " + threshold + " units.");
+    } catch (error) {
+      console.error("Low-stock threshold save error:", error);
+      notify("Unable to save threshold: " + (error.message || "Unknown error"));
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = "Save Threshold";
+    }
+  });
 
   searchInput.addEventListener("input", drawInventoryRows);
   filterSelect.addEventListener("change", drawInventoryRows);
