@@ -107,6 +107,7 @@ function showCustomer(profile) {
 
   createCartElements();
 createOrderHistoryElements();
+createCustomerAccountElements();
 
 loadCustomerProducts();
 loadCustomerOrderHistory();
@@ -778,7 +779,7 @@ document.querySelectorAll("[data-shop-category]").forEach(button => {
 });
 customerSearch?.addEventListener("input", applyCustomerProductView);
 document.getElementById("customerAccountButton")?.addEventListener("click", () => {
-  document.getElementById("customerOrderHistory")?.scrollIntoView({ behavior: "smooth" });
+  document.getElementById("customerAccountProfile")?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 customerSort?.addEventListener("change", () => {
   const grid = customerProducts.querySelector(".shop-product-grid");
@@ -796,6 +797,109 @@ customerSort?.addEventListener("change", () => {
 // ==========================================
 // CUSTOMER ORDER HISTORY
 // ==========================================
+
+// ==========================================
+// CUSTOMER ACCOUNT PROFILE
+// ==========================================
+
+function createCustomerAccountElements() {
+  if (document.getElementById("customerAccountProfile")) return;
+
+  const section = document.createElement("section");
+  section.id = "customerAccountProfile";
+  section.className = "customer-account-profile";
+  section.innerHTML = `
+    <div class="customer-account-profile-heading">
+      <div>
+        <p class="customer-account-profile-eyebrow">YOUR ACCOUNT</p>
+        <h2>My Account</h2>
+        <p>Keep your contact details up to date for your farm orders.</p>
+      </div>
+    </div>
+    <form id="customerAccountProfileForm" class="customer-account-profile-form">
+      <div class="customer-account-profile-field">
+        <label for="customerProfileEmail">Email address</label>
+        <input id="customerProfileEmail" type="email" autocomplete="email" disabled>
+        <small>Your email is managed by your sign-in account.</small>
+      </div>
+      <div class="customer-account-profile-field">
+        <label for="customerProfileFullName">Full name</label>
+        <input id="customerProfileFullName" type="text" maxlength="100" autocomplete="name" required>
+      </div>
+      <div class="customer-account-profile-field">
+        <label for="customerProfilePhone">Contact number</label>
+        <input id="customerProfilePhone" type="tel" maxlength="30" autocomplete="tel" placeholder="Enter your contact number">
+      </div>
+      <div class="customer-account-profile-actions">
+        <p id="customerAccountProfileMessage" role="status" aria-live="polite"></p>
+        <button type="submit" id="saveCustomerAccountProfile" class="customer-account-profile-save">Save changes</button>
+      </div>
+    </form>
+  `;
+
+  const mount = document.getElementById("customerOrderHistoryMount");
+  const history = document.getElementById("customerOrderHistory");
+  if (mount) mount.insertBefore(section, history || null);
+  else customerProducts.parentElement.appendChild(section);
+
+  const form = document.getElementById("customerAccountProfileForm");
+  const emailInput = document.getElementById("customerProfileEmail");
+  const nameInput = document.getElementById("customerProfileFullName");
+  const phoneInput = document.getElementById("customerProfilePhone");
+  const message = document.getElementById("customerAccountProfileMessage");
+  const saveButton = document.getElementById("saveCustomerAccountProfile");
+
+  nameInput.value = currentCustomer?.full_name || "";
+  phoneInput.value = currentCustomer?.phone || "";
+
+  supabase.auth.getUser().then(({ data, error }) => {
+    if (!error && emailInput) emailInput.value = data.user?.email || "";
+  });
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!currentCustomer) return;
+
+    const fullName = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+    if (!fullName) {
+      message.textContent = "Please enter your full name.";
+      return;
+    }
+
+    saveButton.disabled = true;
+    message.textContent = "Saving your profile...";
+
+    try {
+      const { data, error } = await supabase
+        .from("customer_profiles")
+        .update({
+          full_name: fullName,
+          phone: phone || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", currentCustomer.id)
+        .select("id, full_name, phone")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) throw new Error("Your profile could not be updated. Please sign in again and retry.");
+
+      currentCustomer = { ...currentCustomer, ...data };
+      customerName.textContent = data.full_name || "Customer";
+      const sidebarName = document.getElementById("customerSidebarName");
+      const avatar = document.getElementById("customerAvatar");
+      if (sidebarName) sidebarName.textContent = data.full_name || "Customer";
+      if (avatar) avatar.textContent = (data.full_name || "Customer").substring(0, 2).toUpperCase();
+      message.textContent = "Your profile has been saved.";
+    } catch (error) {
+      console.error("Customer profile update error:", error);
+      message.textContent = error.message || "Unable to save your profile. Please try again.";
+    } finally {
+      saveButton.disabled = false;
+    }
+  });
+}
 
 function createOrderHistoryElements() {
   if (document.getElementById("customerOrderHistory")) {
