@@ -1683,7 +1683,7 @@ function updateCheckoutFields() {
   }
 }
 
-async async function submitCustomerOrder() {
+async function submitCustomerOrder() {
   if (customerCart.size === 0) return;
 
   const button = document.getElementById("placeCustomerOrder");
@@ -1760,7 +1760,7 @@ await loadCustomerOrderHistory();
 // CHECK EXISTING SESSION
 // ==========================================
 
-async async function checkSession() {
+async function checkSession() {
   showLogin();
 
   const { data, error } = await supabase.auth.getSession();
@@ -1781,7 +1781,7 @@ async async function checkSession() {
 // LOGOUT
 // ==========================================
 
-async async function signOutUser(button) {
+async function signOutUser(button) {
   button.disabled = true;
 
   const { error } = await supabase.auth.signOut();
