@@ -622,3 +622,134 @@
 
 /* Ensure filtered product cards stay hidden despite card layout styling */
 .shop-product-card[hidden]{display:none!important}
+
+
+/* Verdant customer portal — My Purchases order cards */
+.customer-order-card {
+  border: 1px solid #e4eae4;
+  border-radius: 16px;
+  background: #fff;
+  padding: 18px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 14px rgba(27, 67, 50, 0.04);
+}
+.customer-order-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.customer-order-identity h3 {
+  margin: 0;
+  color: #1b4332;
+  font-size: 15px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+.customer-order-identity p {
+  margin: 6px 0 0;
+  color: #738076;
+  font-size: 12px;
+}
+.customer-order-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #edf4ee;
+  color: #315b3f;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+.customer-order-status-pending { background: #fff4d9; color: #8b6415; }
+.customer-order-status-approved { background: #e9f1ff; color: #315c9b; }
+.customer-order-status-ready_for_pickup { background: #e7f5eb; color: #27633a; }
+.customer-order-status-completed { background: #e7f5eb; color: #27633a; }
+.customer-order-status-cancelled,
+.customer-order-status-rejected { background: #fcebea; color: #a13b36; }
+.customer-order-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 17px;
+}
+.customer-order-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  background: #f7f9f6;
+  min-width: 0;
+}
+.customer-order-meta span {
+  color: #7b877d;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.customer-order-meta strong {
+  color: #304b38;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.customer-order-items-section {
+  margin-top: 17px;
+  padding-top: 15px;
+  border-top: 1px solid #edf0ec;
+}
+.customer-order-items-section > strong {
+  color: #344a38;
+  font-size: 12px;
+}
+.customer-order-items {
+  list-style: none;
+  padding: 0;
+  margin: 9px 0 0;
+}
+.customer-order-items li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 7px 0;
+  color: #59665c;
+  font-size: 12px;
+}
+.customer-order-items li strong {
+  color: #344a38;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.customer-order-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #edf0ec;
+  margin-top: 12px;
+  padding-top: 14px;
+}
+.customer-order-card-footer span {
+  color: #6f7c71;
+  font-size: 12px;
+  font-weight: 650;
+}
+.customer-order-card-footer strong {
+  color: #1b4332;
+  font-size: 17px;
+  font-weight: 800;
+}
+.customer-order-empty {
+  color: #738076;
+  padding: 18px 4px;
+}
+@media (max-width: 560px) {
+  .customer-order-card { padding: 14px; }
+  .customer-order-meta-grid { grid-template-columns: 1fr 1fr; }
+  .customer-order-meta:last-child { grid-column: 1 / -1; }
+  .customer-order-items li { font-size: 11px; }
+}
