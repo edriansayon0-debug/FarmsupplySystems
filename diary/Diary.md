@@ -38,3 +38,5 @@
 2026-11-26 — Corrected fallback title-casing for unrecognized customer order/payment statuses in `auth.js` after verification.
 
 2026-11-26 — Added My Purchases Buy Again action to restore prior order quantities into the current cart by matching active catalog products, enforcing available stock, reporting skipped/adjusted items, and scrolling to cart; updated customer portal `auth.js` and `styles.css`.
+
+2026-11-26 — Added customer My Account profile form for editable full name and contact number with read-only sign-in email, owner-scoped customer_profiles update, refreshed portal name/avatar after save, and responsive styling; updated customer portal `auth.js` and `styles.css`.
