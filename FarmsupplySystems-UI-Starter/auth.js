@@ -843,7 +843,7 @@ function renderCart() {
     browseButton.className = "shop-cart-browse";
     browseButton.textContent = "Browse products";
     browseButton.addEventListener("click", () => {
-      document.getElementById("shopProducts")?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById("customerProducts")?.scrollIntoView({ behavior: "smooth" });
     });
 
     empty.append(emptyIcon, emptyTitle, emptyMessage, browseButton);
