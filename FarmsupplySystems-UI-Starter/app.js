@@ -307,8 +307,7 @@ async function renderProductsPage() {
       "<label>Image URL (optional)<input name='image_url' type='url' maxlength='2000' value='" + safeText(product?.image_url || "") + "' placeholder='https://...'></label>" +
       "<div class='product-modal-footer'><button type='button' class='product-secondary-btn product-modal-close'>Cancel</button><button type='submit' class='product-primary-btn' id='productSaveBtn'>" + (editing ? "Save Changes" : "Add Product") + "</button></div></form></section>";
     content.appendChild(modal);
-    modal.querySelectorAll(".product-modal-close").forEach(button => button.addEventListener("click", closeProductModal));
-    modal.addEventListener("click", event => { if (event.target === modal) closeProductModal(); });
+    bindProductModalClose(modal);
     modal.querySelector("#productForm").addEventListener("submit", async event => {
       event.preventDefault();
       const form = event.currentTarget;
