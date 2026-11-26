@@ -177,29 +177,93 @@
 </section>
 
 
-<!-- CUSTOMER SCREEN -->
-<section id="customerScreen" style="display:none;min-height:100vh;background:#f5f7f4;padding:25px">
-  <header style="display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap">
-    <div>
-      <h2 style="color:#1b4332;margin:0">S.T.P.B Farm Supplies</h2>
-      <p style="margin:5px 0;color:#777">Customer Shopping Portal</p>
+<!-- CUSTOMER SHOPPING PORTAL -->
+<section id="customerScreen" class="customer-portal" style="display:none">
+  <aside class="shop-sidebar">
+    <a class="shop-brand" href="#" aria-label="S.T.P.B Farm Supplies home">
+      <span class="shop-brand-mark">♧</span>
+      <span><strong>S.T.P.B Farm Supplies</strong><small>FARM SUPPLY & EQUIPMENT</small></span>
+    </a>
+    <p class="shop-nav-label">YOUR STORE</p>
+    <nav class="shop-nav" aria-label="Customer navigation">
+      <a class="shop-nav-link active" href="#shopCollection">⌂ <span>Shop collection</span></a>
+      <a class="shop-nav-link" href="#shopCategories">▦ <span>Browse categories</span></a>
+      <a class="shop-nav-link" href="#customerOrderHistory">▤ <span>My purchases</span></a>
+    </nav>
+    <div class="shop-sidebar-divider"></div>
+    <p class="shop-nav-label">EXPLORE CATEGORIES</p>
+    <nav class="shop-category-nav" aria-label="Product categories">
+      <button type="button" data-shop-category="Animal feed">◌ <span>Animal feed</span></button>
+      <button type="button" data-shop-category="Seeds">✳ <span>Seeds</span></button>
+      <button type="button" data-shop-category="Fertilizers">❋ <span>Fertilizers</span></button>
+      <button type="button" data-shop-category="Farm tools">⌁ <span>Farm tools</span></button>
+      <button type="button" data-shop-category="Sprayers">♧ <span>Sprayers</span></button>
+      <button type="button" data-shop-category="Irrigation">≋ <span>Irrigation</span></button>
+    </nav>
+    <div class="shop-help-card">
+      <span class="shop-help-icon">✦</span>
+      <strong>Need farming advice?</strong>
+      <p>Find the right farm essentials for your work.</p>
+      <a href="mailto:support@stpbfarmsupplies.com">Contact our team ↗</a>
     </div>
-    <div>
-      <span id="customerName">Customer</span>
-      <button id="customerSignOut" type="button">Sign out</button>
+    <div class="shop-account">
+      <span class="shop-account-avatar" id="customerAvatar">CU</span>
+      <span><strong id="customerSidebarName">Customer</strong><small>Personal account</small></span>
+      <button id="customerSignOut" type="button" aria-label="Sign out">↪</button>
     </div>
-  </header>
+  </aside>
 
-  <main style="max-width:1100px;margin:35px auto">
-    <h1>Available Products</h1>
-    <p>Browse our farm supplies and equipment.</p>
+  <div class="shop-main">
+    <header class="shop-topbar">
+      <div class="shop-breadcrumb"><span>Store</span><b>/</b><strong>Shop collection</strong></div>
+      <label class="shop-search">⌕ <input id="customerProductSearch" type="search" placeholder="Search farm supplies and equipment..." aria-label="Search products"></label>
+      <div class="shop-top-actions">
+        <span class="shop-greeting">Hello, <strong id="customerName">Customer</strong></span>
+        <button type="button" class="shop-account-button" id="customerAccountButton">My account</button>
+      </div>
+    </header>
 
-    <div id="customerProducts">
-      <p>Loading products...</p>
-    </div>
-  </main>
+    <main class="shop-workspace" id="shopCollection">
+      <div class="shop-page-heading">
+        <div><p class="shop-eyebrow">S.T.P.B INTEGRATED FARMS CO. · ORGANIZATION A</p><h1>Farm supplies & equipment</h1><p>Reliable supplies and hardworking equipment for your farm.</p></div>
+      </div>
+
+      <section class="shop-hero">
+        <div class="shop-hero-copy">
+          <span>READY FOR EVERY SEASON</span>
+          <h2>Equip your farm<br>for more.</h2>
+          <p>Find dependable supplies and equipment to keep your farm growing, season after season.</p>
+          <a href="#shopCategories">Explore collection <span>→</span></a>
+        </div>
+        <div class="shop-hero-art" aria-hidden="true"><span class="hero-sun"></span><span class="hero-leaf leaf-one">✳</span><span class="hero-leaf leaf-two">❋</span><span class="hero-ground"></span></div>
+        <div class="shop-hero-note"><span>✦</span><div><strong>Here for your farm</strong><small>Browse supplies for everyday farm work.</small></div></div>
+      </section>
+
+      <section class="shop-category-section" id="shopCategories">
+        <div class="shop-section-heading"><div><h2>Shop by category</h2><p>Find what your farm needs.</p></div></div>
+        <div class="shop-category-chips" id="customerCategoryFilters">
+          <button type="button" class="active" data-shop-filter="all">All products</button>
+          <button type="button" data-shop-filter="Animal feed">Animal feed</button>
+          <button type="button" data-shop-filter="Seeds">Seeds</button>
+          <button type="button" data-shop-filter="Fertilizers">Fertilizers</button>
+          <button type="button" data-shop-filter="Farm tools">Farm tools</button>
+          <button type="button" data-shop-filter="Sprayers">Sprayers</button>
+          <button type="button" data-shop-filter="Irrigation">Irrigation</button>
+        </div>
+      </section>
+
+      <div class="shop-content-layout">
+        <section class="shop-product-column">
+          <div class="shop-products-heading"><div><h2>Available products</h2><p id="customerProductCount">Browse our current selection.</p></div><label class="shop-sort">Sort by <select id="customerProductSort"><option value="recommended">Recommended</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name: A to Z</option></select></label></div>
+          <div id="customerProducts"><p class="shop-loading">Loading products...</p></div>
+          <div id="customerOrderHistoryMount"></div>
+        </section>
+        <aside class="shop-cart-column" id="customerCartMount" aria-label="Shopping cart"></aside>
+      </div>
+      <footer class="shop-footer">© 2026 S.T.P.B Integrated Farms Co. <span>Farm Supplies & Equipment · Organization A</span></footer>
+    </main>
+  </div>
 </section>
-
 
 <script type="module" src="app.js"></script>
 <script type="module" src="auth.js"></script>
