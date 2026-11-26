@@ -307,6 +307,16 @@ async function loadCustomerProducts() {
   availableProducts.forEach((product) => {
     const card = document.createElement("article");
     card.className = "shop-product-card";
+    card.dataset.productId = product.id;
+
+    if (product.image_url) {
+      const image = document.createElement("img");
+      image.className = "shop-product-image";
+      image.src = product.image_url;
+      image.alt = product.product_name;
+      image.loading = "lazy";
+      card.appendChild(image);
+    }
 
     const name = document.createElement("h3");
     name.className = "shop-product-name";
@@ -511,7 +521,7 @@ function applyCustomerProductView() {
   const cards = Array.from(grid.children);
   let visible = 0;
   cards.forEach((card, index) => {
-    const product = availableProducts[index];
+    const product = availableProducts.find(item => String(item.id) === String(card.dataset.productId));
     if (!product) return;
     const category = String(product.category || "").toLowerCase();
     const matchesCategory = selectedCustomerCategory === "all" ||
@@ -546,6 +556,9 @@ document.querySelectorAll("[data-shop-category]").forEach(button => {
   });
 });
 customerSearch?.addEventListener("input", applyCustomerProductView);
+document.getElementById("customerAccountButton")?.addEventListener("click", () => {
+  document.getElementById("customerOrderHistory")?.scrollIntoView({ behavior: "smooth" });
+});
 customerSort?.addEventListener("change", () => {
   const grid = customerProducts.querySelector(".shop-product-grid");
   if (!grid) return;
@@ -554,8 +567,7 @@ customerSort?.addEventListener("change", () => {
   if (customerSort.value === "price-high") sorted.sort((a,b) => Number(b.price)-Number(a.price));
   if (customerSort.value === "name") sorted.sort((a,b) => a.product_name.localeCompare(b.product_name));
   const order = new Map(sorted.map((product,index) => [product.id,index]));
-  Array.from(grid.children).sort((a,b) => order.get(availableProducts.find(p => p.product_name === a.querySelector("h3")?.textContent)?.id) -
-    order.get(availableProducts.find(p => p.product_name === b.querySelector("h3")?.textContent)?.id))
+  Array.from(grid.children).sort((a,b) => order.get(a.dataset.productId) - order.get(b.dataset.productId))
     .forEach(card => grid.appendChild(card));
   applyCustomerProductView();
 });
@@ -623,7 +635,7 @@ function formatMoney(amount) {
 }
 
 function createCartElements() {
-  if (document.getElementById("customerCartToolbar")) return;
+  if (document.getElementById("customerCartPanel")) return;
 
   const style = document.createElement("style");
   style.textContent = `
@@ -632,6 +644,7 @@ function createCartElements() {
     .checkout-box { background:white; padding:26px; border-radius:18px; width:min(100%,500px); max-height:90vh; overflow:auto; }
     .checkout-input { width:100%; box-sizing:border-box; padding:11px 12px; margin:6px 0 14px; border:1px solid #dce3d8; border-radius:8px; font:inherit; }
   `;
+  document.head.appendChild(style);
 
   const panel = document.createElement("section");
   panel.id = "customerCartPanel";
