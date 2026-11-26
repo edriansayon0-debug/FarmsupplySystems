@@ -306,3 +306,14 @@
 .inventory-change-negative{color:#b5473d}
 .inventory-adjust-submit:disabled,.reports-refresh:disabled{opacity:.65;cursor:wait}
 @media(max-width:650px){.inventory-history-card{padding:10px}.inventory-history-card .inventory-section-heading{align-items:flex-start;flex-direction:column}.inventory-history-card .reports-refresh{width:100%}}
+
+
+/* Inventory movement filters and export */
+.inventory-history-actions{display:flex;gap:7px;flex-wrap:wrap}
+.inventory-history-filters{display:grid;grid-template-columns:minmax(150px,1.2fr) minmax(130px,1fr) minmax(130px,1fr) auto;align-items:end;gap:9px;margin:12px 0}
+.inventory-history-filters label{display:grid;gap:5px;color:#59665b;font-size:9px;font-weight:600}
+.inventory-history-filters select,.inventory-history-filters input{min-width:0;width:100%;border:1px solid #e5e6de;border-radius:5px;background:#f8f8f4;padding:8px 9px;color:#566257;font:inherit;font-size:9px;box-sizing:border-box}
+.inventory-history-results{margin:0 0 8px;color:#89948a;font-size:9px}
+.inventory-history-filters button{white-space:nowrap}
+@media(max-width:700px){.inventory-history-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-history-filters button{width:100%}.inventory-history-actions{width:100%}.inventory-history-actions button{flex:1}}
+@media(max-width:420px){.inventory-history-filters{grid-template-columns:minmax(0,1fr)}}
