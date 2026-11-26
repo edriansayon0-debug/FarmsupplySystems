@@ -560,6 +560,8 @@ async function loadCustomerOrderHistory() {
         total_amount,
         order_status,
         payment_status,
+        delivery_address,
+        customer_notes,
         created_at
       `)
       .eq("customer_id", currentCustomer.id)
@@ -667,6 +669,55 @@ async function loadCustomerOrderHistory() {
       total.textContent = formatMoney(order.total_amount);
       footer.append(totalLabel, total);
 
+      const detailsButton = document.createElement('button');
+      detailsButton.type = 'button';
+      detailsButton.className = 'customer-order-details-toggle';
+      detailsButton.textContent = 'View details';
+      detailsButton.setAttribute('aria-expanded', 'false');
+
+      const detailsPanel = document.createElement('section');
+      detailsPanel.className = 'customer-order-details-panel';
+      detailsPanel.hidden = true;
+      detailsPanel.setAttribute('aria-label', 'Full order details');
+
+      const detailGrid = document.createElement('div');
+      detailGrid.className = 'customer-order-details-grid';
+      detailGrid.append(
+        createCustomerOrderMeta('Order reference', order.id),
+        createCustomerOrderMeta('Subtotal', formatMoney(order.subtotal))
+      );
+
+      if (order.fulfillment_method === 'delivery' && order.delivery_address) {
+        detailGrid.append(createCustomerOrderMeta('Delivery address', order.delivery_address));
+      }
+      if (order.customer_notes) {
+        detailGrid.append(createCustomerOrderMeta('Order notes', order.customer_notes));
+      }
+
+      const detailItemsTitle = document.createElement('h4');
+      detailItemsTitle.className = 'customer-order-details-title';
+      detailItemsTitle.textContent = 'Item price breakdown';
+      const detailItems = document.createElement('ul');
+      detailItems.className = 'customer-order-details-items';
+
+      (itemsByOrder.get(order.id) || []).forEach(item => {
+        const detailItem = document.createElement('li');
+        const detailName = document.createElement('span');
+        detailName.textContent = item.product_name + ' · ' + item.quantity + ' × ' + formatMoney(item.unit_price);
+        const detailSubtotal = document.createElement('strong');
+        detailSubtotal.textContent = formatMoney(item.subtotal);
+        detailItem.append(detailName, detailSubtotal);
+        detailItems.appendChild(detailItem);
+      });
+
+      detailsPanel.append(detailGrid, detailItemsTitle, detailItems);
+      detailsButton.addEventListener('click', () => {
+        const isOpen = !detailsPanel.hidden;
+        detailsPanel.hidden = isOpen;
+        detailsButton.textContent = isOpen ? 'View details' : 'Hide details';
+        detailsButton.setAttribute('aria-expanded', String(!isOpen));
+      });
+
       const buyAgainButton = document.createElement('button');
       buyAgainButton.type = 'button';
       buyAgainButton.className = 'customer-order-buy-again';
@@ -675,7 +726,7 @@ async function loadCustomerOrderHistory() {
         addPreviousOrderToCart(itemsByOrder.get(order.id) || []);
       });
 
-      card.append(header, metadata, itemsSection, footer, buyAgainButton);
+      card.append(header, metadata, itemsSection, footer, detailsButton, detailsPanel, buyAgainButton);
       container.appendChild(card);
     });
   } catch (error) {
