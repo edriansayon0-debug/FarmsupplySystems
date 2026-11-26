@@ -1113,3 +1113,59 @@
   .shop-quick-view-info h2 { font-size: 19px; }
   .shop-quick-view-price { font-size: 20px; }
 }
+
+
+/* Product comparison */
+.shop-compare-product-button {
+  width: 100%; min-height: 34px; margin-top: 6px; padding: 7px 10px;
+  border: 1px solid #cbd8c7; border-radius: 8px; background: #f7faf4;
+  color: #3d6546; font: 700 11px/1.3 Outfit, sans-serif; cursor: pointer;
+}
+.shop-compare-product-button:hover, .shop-compare-product-button.is-selected {
+  border-color: #477a4f; background: #eaf2e5; color: #24583a;
+}
+.shop-compare-tray {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  margin: 0 0 16px; padding: 14px 16px; border: 1px solid #d8e4d3;
+  border-radius: 12px; background: #f4f8ef;
+}
+.shop-compare-tray[hidden], .shop-compare-modal-overlay[hidden] { display: none !important; }
+.shop-compare-tray-copy { min-width: 0; }
+.shop-compare-tray-copy > strong { color: #2c4933; font-size: 13px; }
+.shop-compare-tray-count { margin: 4px 0 8px; color: #748170; font-size: 11px; }
+.shop-compare-selected-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.shop-compare-chip { padding: 5px 9px; border: 1px solid #d5dfd0; border-radius: 20px; background: #fff; color: #49634b; font-size: 10px; cursor: pointer; }
+.shop-compare-status { margin: 5px 0 0; color: #7b8878; font-size: 10px; }
+.shop-compare-tray-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.shop-compare-clear { min-height: 36px; padding: 8px 12px; border: 1px solid #d4dfd0; border-radius: 8px; background: #fff; color: #50634f; font-size: 11px; cursor: pointer; }
+.shop-compare-open { min-height: 36px; width: auto; padding: 8px 14px; font-size: 11px; }
+.shop-compare-open:disabled { opacity: .5; cursor: not-allowed; }
+.shop-compare-modal-overlay {
+  position: fixed; inset: 0; z-index: 10001; display: flex; align-items: center;
+  justify-content: center; padding: 18px; background: rgba(18, 38, 27, .68);
+  backdrop-filter: blur(4px);
+}
+.shop-compare-modal {
+  width: min(100%, 980px); max-height: 90vh; overflow: auto; padding: 24px;
+  border: 1px solid #e4eae1; border-radius: 18px; background: #fff;
+  box-shadow: 0 24px 80px #10251940; outline: none;
+}
+.shop-compare-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.shop-compare-modal-header p { margin: 0 0 6px; color: #7a9274; font-size: 10px; font-weight: 800; letter-spacing: .12em; }
+.shop-compare-modal-header h2 { margin: 0; color: #2c4032; font-size: 22px; }
+.shop-compare-modal-close { width: 36px; height: 36px; border: 1px solid #e1e8df; border-radius: 50%; background: #f8faf6; color: #526853; font-size: 24px; cursor: pointer; flex-shrink: 0; }
+.shop-compare-table-wrap { overflow-x: auto; }
+.shop-compare-table { width: 100%; border-collapse: separate; border-spacing: 0; color: #526353; font-size: 12px; }
+.shop-compare-table th, .shop-compare-table td { min-width: 150px; padding: 14px; border-right: 1px solid #e7ece4; border-bottom: 1px solid #e7ece4; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.shop-compare-table thead th { background: #f3f7ef; color: #2d4933; }
+.shop-compare-table thead th:first-child, .shop-compare-table tbody th { min-width: 130px; background: #fafbf8; color: #60705e; font-weight: 700; }
+.shop-compare-table thead th strong { display: block; margin-bottom: 9px; }
+.shop-compare-remove { padding: 4px 8px; border: 1px solid #d7e1d2; border-radius: 6px; background: #fff; color: #657b60; font-size: 10px; cursor: pointer; }
+@media (max-width: 640px) {
+  .shop-compare-tray { align-items: stretch; flex-direction: column; }
+  .shop-compare-tray-actions { justify-content: flex-end; }
+  .shop-compare-modal-overlay { align-items: flex-end; padding: 0; }
+  .shop-compare-modal { width: 100%; max-height: 92vh; padding: 20px 14px calc(18px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; }
+  .shop-compare-modal-header h2 { font-size: 18px; }
+  .shop-compare-table th, .shop-compare-table td { min-width: 130px; padding: 11px; }
+}
