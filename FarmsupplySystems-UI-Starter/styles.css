@@ -609,3 +609,12 @@
 .checkout-place-button:disabled{opacity:.55;cursor:wait}
 .checkout-footnote{margin:12px 0 0;color:#9aa397;text-align:center;font-size:8px}
 @media(max-width:600px){.checkout-overlay{align-items:flex-end;padding:0}.checkout-box{width:100%;max-height:94vh;padding:21px 17px calc(18px + env(safe-area-inset-bottom));border-radius:18px 18px 0 0}.checkout-header h2{font-size:20px}.checkout-order-summary{padding:13px}.checkout-actions{display:grid;grid-template-columns:1fr 1.25fr}.checkout-actions button{min-width:0;padding:12px 9px}}
+
+
+/* Saved favorites — customer shopping portal */
+.shop-product-media{position:relative}
+.shop-favorite-button{position:absolute;top:9px;right:9px;z-index:2;width:32px;height:32px;display:grid;place-items:center;padding:0;border:1px solid #ffffffb8;border-radius:50%;background:#ffffffed;color:#55745b;font:700 19px/1 'DM Sans',sans-serif;box-shadow:0 2px 8px #203d2d18;cursor:pointer;transition:transform .15s ease,background .15s ease,color .15s ease}
+.shop-favorite-button:hover{transform:scale(1.06);background:#fff;color:#b65b55}
+.shop-favorite-button.is-saved{background:#fff0ed;color:#bd554c;border-color:#f2d6d0}
+.shop-favorite-button:disabled{opacity:.55;cursor:wait}
+.shop-product-empty{grid-column:1/-1;padding:25px 18px;border:1px dashed #dce5d8;border-radius:12px;background:#fbfcf9;color:#718170;text-align:center;font-size:11px;line-height:1.6}
