@@ -309,14 +309,30 @@ async function loadCustomerProducts() {
     card.className = "shop-product-card";
     card.dataset.productId = product.id;
 
+    const media = document.createElement("div");
+    media.className = "shop-product-media";
+
     if (product.image_url) {
       const image = document.createElement("img");
       image.className = "shop-product-image";
       image.src = product.image_url;
       image.alt = product.product_name;
       image.loading = "lazy";
-      card.appendChild(image);
+      image.addEventListener("error", () => {
+        image.remove();
+        media.classList.add("shop-product-media-fallback");
+      }, { once: true });
+      media.appendChild(image);
+    } else {
+      media.classList.add("shop-product-media-fallback");
+      const fallback = document.createElement("span");
+      fallback.textContent = "Farm essentials";
+      media.appendChild(fallback);
     }
+
+    const category = document.createElement("span");
+    category.className = "shop-product-category";
+    category.textContent = product.category || "Farm supply";
 
     const name = document.createElement("h3");
     name.className = "shop-product-name";
@@ -350,7 +366,7 @@ async function loadCustomerProducts() {
     addButton.disabled = Number(product.stock_quantity) <= 0;
     addButton.addEventListener("click", () => addToCart(product.id));
 
-    card.append(name, description, price, stock, addButton);
+    card.append(media, category, name, description, price, stock, addButton);
     grid.appendChild(card);
   });
 
