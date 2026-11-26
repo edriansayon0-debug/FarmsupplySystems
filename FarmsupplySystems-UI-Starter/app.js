@@ -234,9 +234,31 @@ async function renderProductsPage() {
     }
   }
 
-  function closeProductModal() {
-    const modal = document.querySelector(".product-modal");
-    if (modal) modal.remove();
+  function closeProductModal(modal = document.querySelector(".product-modal")) {
+    if (modal && modal.classList.contains("product-modal")) modal.remove();
+  }
+
+  function bindProductModalClose(modal) {
+    modal.querySelectorAll(".product-modal-close").forEach(button => {
+      button.type = "button";
+      button.addEventListener("click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeProductModal(modal);
+      });
+    });
+    modal.addEventListener("click", event => {
+      if (event.target === modal) {
+        event.preventDefault();
+        closeProductModal(modal);
+      }
+    });
+    modal.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeProductModal(modal);
+      }
+    });
   }
 
   function openProductDetails(product) {
@@ -257,8 +279,7 @@ async function renderProductsPage() {
       "<div class='wide'><small>Description</small><p>" + safeText(product.description || "No description provided.") + "</p></div>" +
       "</div><div class='product-modal-footer'><button type='button' class='product-secondary-btn product-modal-close'>Close</button></div></section>";
     content.appendChild(modal);
-    modal.querySelectorAll(".product-modal-close").forEach(button => button.addEventListener("click", closeProductModal));
-    modal.addEventListener("click", event => { if (event.target === modal) closeProductModal(); });
+    bindProductModalClose(modal);
   }
 
   function openProductForm(product) {
