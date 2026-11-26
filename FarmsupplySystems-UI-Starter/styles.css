@@ -402,3 +402,6 @@
 .product-details-grid p{margin:0;color:#52544a;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
 @media(max-width:900px){.product-toolbar{align-items:flex-start;flex-direction:column}.product-toolbar-left{width:100%}.product-total{align-self:flex-end}}
 @media(max-width:600px){.product-page-heading{align-items:flex-start;flex-direction:column}.product-page-heading h2{font-size:21px}.product-page-heading .product-primary-btn{width:100%}.product-toolbar-left{display:grid;grid-template-columns:1fr;width:100%}.product-search{width:auto}.product-toolbar select{width:100%}.product-table-card{padding:12px}.product-pagination{align-items:flex-start;flex-direction:column}.product-page-buttons{width:100%;justify-content:space-between}.product-modal{padding:12px}.product-modal-panel{padding:18px}.product-form-two,.product-details-grid{grid-template-columns:1fr}.product-details-grid .wide{grid-column:auto}}
+
+/* Give Cancel and primary action buttons clearer separation in product forms */
+.product-form .product-modal-footer{gap:18px;padding-top:6px}
