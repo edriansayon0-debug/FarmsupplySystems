@@ -632,8 +632,10 @@ function applyCustomerProductView() {
       .filter(Boolean).join(" ").toLowerCase();
     const matchesSearch = !query || haystack.includes(query);
     const matchesFavorites = !showFavoritesOnly || favoriteProductIds.has(product.id);
-    card.hidden = !(matchesCategory && matchesSearch && matchesFavorites);
-    if (!card.hidden) visible++;
+    const shouldShowCard = matchesCategory && matchesSearch && matchesFavorites;
+    card.hidden = !shouldShowCard;
+    card.style.display = shouldShowCard ? "flex" : "none";
+    if (shouldShowCard) visible++;
   });
 
   if (customerProductCount) {
