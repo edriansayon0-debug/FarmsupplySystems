@@ -121,6 +121,19 @@
       Sign in to access your account.
     </p>
 
+    <div id="customerSignupFields" hidden>
+      <label class="auth-label" for="customerSignupFullName">Full name</label>
+      <input
+        class="auth-input"
+        id="customerSignupFullName"
+        type="text"
+        placeholder="Enter your full name"
+        autocomplete="name"
+        minlength="2"
+        maxlength="100"
+      >
+    </div>
+
     <label class="auth-label" for="loginEmail">
       Email address
     </label>
@@ -161,6 +174,14 @@
       type="button"
     >
       Forgot password?
+    </button>
+
+    <button
+      class="auth-forgot"
+      id="authModeToggle"
+      type="button"
+    >
+      New customer? Create an account
     </button>
 
     <p
