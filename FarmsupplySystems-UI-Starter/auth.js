@@ -461,11 +461,45 @@ async function loadCustomerProducts() {
   renderCart();
 }
 
-async function loadCustomerOrderHistory() {
-  const container = document.getElementById(
-    "customerOrderHistoryList"
-  );
+function customerOrderStatusLabel(status) {
+  const labels = {
+    pending: "Awaiting Review",
+    approved: "Approved",
+    ready_for_pickup: "Ready for Pickup",
+    completed: "Completed",
+    cancelled: "Cancelled",
+    rejected: "Not Approved"
+  };
+  const key = String(status || "pending").toLowerCase();
+  return labels[key] || key.replace(/[_-]+/g, " ").replace(/\\b\\w/g, letter => letter.toUpperCase());
+}
 
+function customerPaymentStatusLabel(status) {
+  const labels = {
+    pending: "Pending",
+    unpaid: "Unpaid",
+    paid: "Paid",
+    refunded: "Refunded",
+    partially_refunded: "Partially Refunded",
+    failed: "Failed"
+  };
+  const key = String(status || "pending").toLowerCase();
+  return labels[key] || key.replace(/[_-]+/g, " ").replace(/\\b\\w/g, letter => letter.toUpperCase());
+}
+
+function createCustomerOrderMeta(label, value) {
+  const item = document.createElement("div");
+  item.className = "customer-order-meta";
+  const caption = document.createElement("span");
+  caption.textContent = label;
+  const detail = document.createElement("strong");
+  detail.textContent = value;
+  item.append(caption, detail);
+  return item;
+}
+
+async function loadCustomerOrderHistory() {
+  const container = document.getElementById("customerOrderHistoryList");
   if (!container || !currentCustomer) return;
 
   container.textContent = "Loading your orders...";
@@ -493,121 +527,108 @@ async function loadCustomerOrderHistory() {
     container.replaceChildren();
 
     if (!orders || orders.length === 0) {
-      container.textContent = "You have not placed any orders yet.";
+      const empty = document.createElement("p");
+      empty.className = "customer-order-empty";
+      empty.textContent = "You have not placed any orders yet.";
+      container.appendChild(empty);
       return;
     }
 
     const orderIds = orders.map(order => order.id);
-
-    const { data: orderItems, error: itemsError } =
-      await supabase
-        .from("customer_order_items")
-        .select(`
-          order_id,
-          product_name,
-          quantity,
-          unit_price,
-          subtotal
-        `)
-        .in("order_id", orderIds);
+    const { data: orderItems, error: itemsError } = await supabase
+      .from("customer_order_items")
+      .select(`
+        order_id,
+        product_name,
+        quantity,
+        unit_price,
+        subtotal
+      `)
+      .in("order_id", orderIds);
 
     if (itemsError) throw itemsError;
 
     const itemsByOrder = new Map();
-
     (orderItems || []).forEach(item => {
-      if (!itemsByOrder.has(item.order_id)) {
-        itemsByOrder.set(item.order_id, []);
-      }
-
+      if (!itemsByOrder.has(item.order_id)) itemsByOrder.set(item.order_id, []);
       itemsByOrder.get(item.order_id).push(item);
     });
 
     orders.forEach(order => {
       const card = document.createElement("article");
+      card.className = "customer-order-card";
 
-      card.style.border = "1px solid #e5e9e5";
-      card.style.borderRadius = "10px";
-      card.style.padding = "15px";
-      card.style.marginBottom = "15px";
+      const header = document.createElement("div");
+      header.className = "customer-order-card-header";
 
+      const identity = document.createElement("div");
+      identity.className = "customer-order-identity";
       const heading = document.createElement("h3");
-      heading.textContent =
-        order.order_number || order.id;
-
-      heading.style.color = "#1b4332";
-      heading.style.marginTop = "0";
-
+      heading.textContent = order.order_number || order.id;
       const date = document.createElement("p");
-      date.textContent =
-        "Date: " +
-        new Date(order.created_at).toLocaleString("en-PH");
+      date.textContent = new Date(order.created_at).toLocaleString("en-PH", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      });
+      identity.append(heading, date);
 
-      const fulfillment = document.createElement("p");
-      fulfillment.textContent =
-        "Fulfillment: " +
-        (order.fulfillment_method === "pickup"
-          ? "Pay upon Pickup"
-          : "Delivery");
+      const status = document.createElement("span");
+      const statusKey = String(order.order_status || "pending").toLowerCase();
+      status.className = "customer-order-status customer-order-status-" +
+        statusKey.replace(/[^a-z0-9_-]/g, "");
+      status.textContent = customerOrderStatusLabel(statusKey);
+      header.append(identity, status);
 
-      const payment = document.createElement("p");
-      payment.textContent =
-        "Payment: " +
-        (order.payment_method === "pay_upon_pickup"
-          ? "Pay upon Pickup"
-          : "Cash on Delivery");
+      const metadata = document.createElement("div");
+      metadata.className = "customer-order-meta-grid";
+      metadata.append(
+        createCustomerOrderMeta(
+          "Fulfillment",
+          order.fulfillment_method === "pickup" ? "Pickup" : "Delivery"
+        ),
+        createCustomerOrderMeta(
+          "Payment",
+          order.payment_method === "pay_upon_pickup" ? "Pay upon Pickup" : "Cash on Delivery"
+        ),
+        createCustomerOrderMeta(
+          "Payment Status",
+          customerPaymentStatusLabel(order.payment_status)
+        )
+      );
 
-      const status = document.createElement("p");
-      status.textContent =
-        "Order Status: " + order.order_status;
-
-      const paymentStatus = document.createElement("p");
-      paymentStatus.textContent =
-        "Payment Status: " + order.payment_status;
-
+      const itemsSection = document.createElement("div");
+      itemsSection.className = "customer-order-items-section";
       const itemsTitle = document.createElement("strong");
-      itemsTitle.textContent = "Ordered Products";
-
+      itemsTitle.textContent = "Items in this order";
       const itemList = document.createElement("ul");
+      itemList.className = "customer-order-items";
 
-      const items = itemsByOrder.get(order.id) || [];
-
-      items.forEach(item => {
+      (itemsByOrder.get(order.id) || []).forEach(item => {
         const listItem = document.createElement("li");
-
-        listItem.textContent =
-          `${item.product_name} × ${item.quantity} — ` +
-          formatMoney(item.subtotal);
-
+        const itemName = document.createElement("span");
+        itemName.textContent = `${item.product_name} × ${item.quantity}`;
+        const itemSubtotal = document.createElement("strong");
+        itemSubtotal.textContent = formatMoney(item.subtotal);
+        listItem.append(itemName, itemSubtotal);
         itemList.appendChild(listItem);
       });
 
-      const total = document.createElement("h3");
-      total.textContent =
-        "Total: " + formatMoney(order.total_amount);
+      itemsSection.append(itemsTitle, itemList);
 
-      total.style.color = "#1b4332";
+      const footer = document.createElement("div");
+      footer.className = "customer-order-card-footer";
+      const totalLabel = document.createElement("span");
+      totalLabel.textContent = "Order total";
+      const total = document.createElement("strong");
+      total.textContent = formatMoney(order.total_amount);
+      footer.append(totalLabel, total);
 
-      card.append(
-        heading,
-        date,
-        fulfillment,
-        payment,
-        status,
-        paymentStatus,
-        itemsTitle,
-        itemList,
-        total
-      );
-
+      card.append(header, metadata, itemsSection, footer);
       container.appendChild(card);
     });
-
   } catch (error) {
     console.error("Order history error:", error);
-
-    container.textContent =
-      "Unable to load your order history. Please try again.";
+    container.textContent = "Unable to load your order history. Please try again.";
   }
 }
 
