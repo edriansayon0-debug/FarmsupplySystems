@@ -54,3 +54,4 @@
 2026-11-26 — Reset the authentication screen to sign-in mode after logout so customers do not return to the registration view; updated `FarmsupplySystems-UI-Starter/auth.js`.
 
 2026-11-26 — Added customer product comparison for up to three selected items with a removable comparison tray and responsive comparison table; updated `FarmsupplySystems-UI-Starter/auth.js` and `styles.css`. Commits: `4d2d77dd79487355d93c3a876c2eb05e1229a279`, `8fa64a4e853d1672f0fafd46a7281e4679c603de`.
+2026-11-26 — Added customer catalog sorting by stock availability (in-stock products first, then higher stock) with deterministic tie-breakers; updated `FarmsupplySystems-UI-Starter/auth.js` and `FarmsupplySystems-UI-Starter/index.html`. Commits: `236d021c7136b12e5b92d19fec949ea9876092d0`, `ab7d8f1afcc57642e29adfa0ed69d4d113d9008d`.
