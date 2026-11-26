@@ -40,3 +40,4 @@
 2026-11-26 — Added My Purchases Buy Again action to restore prior order quantities into the current cart by matching active catalog products, enforcing available stock, reporting skipped/adjusted items, and scrolling to cart; updated customer portal `auth.js` and `styles.css`.
 
 2026-11-26 — Added customer My Account profile form for editable full name and contact number with read-only sign-in email, owner-scoped customer_profiles update, refreshed portal name/avatar after save, and responsive styling; updated customer portal `auth.js` and `styles.css`.
+2026-11-26 — Added customer_profiles.delivery_address with existing customer-owned RLS protection; My Account now saves the optional delivery address and delivery checkout prefills it while preserving it when switching to pickup; updated customer portal auth.js and styles.css.
