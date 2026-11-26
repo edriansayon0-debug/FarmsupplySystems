@@ -1368,7 +1368,12 @@ function applyCustomerProductSort() {
     return (aOrder ?? Number.MAX_SAFE_INTEGER) -
       (bOrder ?? Number.MAX_SAFE_INTEGER);
   });
-  cards.forEach(card => grid.appendChild(card));
+  // Grid items honor CSS order during auto-placement; set it explicitly as well
+  // as moving DOM nodes so the visual card order matches the selected sort.
+  cards.forEach((card, index) => {
+    card.style.order = String(index);
+    grid.appendChild(card);
+  });
 }
 
 customerSort?.addEventListener("change", () => {
