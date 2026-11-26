@@ -22,6 +22,7 @@ let orders = [];
 let selectedCustomerId = null;
 let selectedOrderId = null;
 let customerSearch = "";
+let lowStockThreshold = 10;
 
 function notify(message) {
   toast.textContent = message;
@@ -133,7 +134,6 @@ async function renderInventoryPage() {
   const filterSelect = document.getElementById("inventoryFilter");
   const productSelect = document.getElementById("inventoryAdjustProduct");
   let products = [];
-  let lowStockThreshold = 10;
 
   const stockType = product => {
     const qty = Number(product.stock_quantity || 0);
@@ -489,7 +489,7 @@ async function renderReportsPage() {
       "<div class='reports-sales-chart' id='reportSalesChart'></div><div class='tablewrap'><table><thead><tr><th>MONTH</th><th>ORDERS</th><th>PAID SALES</th></tr></thead><tbody id='reportSalesRows'><tr><td colspan='3'>Loading report...</td></tr></tbody></table></div>" +
     "</section>" +
     "<section class='card panel reports-panel' data-report-panel='inventory'>" +
-      "<div class='panelhead'><div><h3>Inventory &amp; Reorder Report</h3><p>Active products with 10 or fewer units</p></div><span class='count' id='reportStockCount'>—</span></div>" +
+      "<div class='panelhead'><div><h3>Inventory &amp; Reorder Report</h3><p>Active products at or below the low-stock threshold</p></div><span class='count' id='reportStockCount'>—</span></div>" +
       "<div class='tablewrap'><table><thead><tr><th>PRODUCT</th><th>SKU</th><th>STOCK</th><th>UNIT</th><th>STOCK VALUE</th></tr></thead><tbody id='reportStockRows'><tr><td colspan='5'>Loading inventory...</td></tr></tbody></table></div>" +
     "</section>" +
     "<section class='card panel reports-panel' data-report-panel='products' hidden><div class='panelhead'><div><h3>Product Performance</h3><p>Top products by current stock value</p></div></div><div class='tablewrap'><table><thead><tr><th>PRODUCT</th><th>SKU</th><th>PRICE</th><th>STOCK</th><th>STOCK VALUE</th></tr></thead><tbody id='reportProductRows'></tbody></table></div></section>" +
@@ -503,8 +503,14 @@ async function renderReportsPage() {
   try {
     const results = await Promise.all([
       fetchDashboardProducts(),
-      fetchDashboardOrders(start)
+      fetchDashboardOrders(start),
+      supabase.from("organization_inventory_settings")
+        .select("low_stock_threshold")
+        .eq("organization_id", ORG_ID)
+        .maybeSingle()
     ]);
+    if (results[2].error) throw results[2].error;
+    lowStockThreshold = Number(results[2].data?.low_stock_threshold ?? lowStockThreshold);
     const products = results[0] || [];
     const orders = results[1] || [];
     const paid = orders.filter(order =>
@@ -585,7 +591,7 @@ async function renderReportsPage() {
         "%'></i><small>" + safeText(item.label) + "</small></div>").join("");
     }
 
-    const restock = products.filter(product => Number(product.stock_quantity) <= 10)
+    const restock = products.filter(product => Number(product.stock_quantity) <= lowStockThreshold)
       .sort((a, b) => Number(a.stock_quantity) - Number(b.stock_quantity));
     document.getElementById("reportStockCount").textContent = restock.length + " products";
     document.getElementById("reportStockRows").innerHTML = restock.length
@@ -709,9 +715,15 @@ async function loadDashboardData() {
     supabase.from("organization_customers")
       .select("auth_user_id, full_name, business_name")
       .eq("organization_id", ORG_ID),
-    fetchDashboardOrders(previousYearStart)
+    fetchDashboardOrders(previousYearStart),
+    supabase.from("organization_inventory_settings")
+      .select("low_stock_threshold")
+      .eq("organization_id", ORG_ID)
+      .maybeSingle()
   ]);
   if (results[1].error) throw results[1].error;
+  if (results[3].error) throw results[3].error;
+  lowStockThreshold = Number(results[3].data?.low_stock_threshold ?? 10);
   dashboardProducts = results[0] || [];
   dashboardCustomers = results[1].data || [];
   dashboardOrders = results[2] || [];
@@ -728,9 +740,9 @@ function isDashboardPaidSale(order) {
 
 function renderDashboardSummary() {
   const total = dashboardProducts.length;
-  const inStock = dashboardProducts.filter(p => Number(p.stock_quantity) > 10).length;
+  const inStock = dashboardProducts.filter(p => Number(p.stock_quantity) > lowStockThreshold).length;
   const lowStock = dashboardProducts.filter(p =>
-    Number(p.stock_quantity) > 0 && Number(p.stock_quantity) <= 10
+    Number(p.stock_quantity) > 0 && Number(p.stock_quantity) <= lowStockThreshold
   ).length;
   const outOfStock = dashboardProducts.filter(p => Number(p.stock_quantity) <= 0).length;
   const inventoryValue = dashboardProducts.reduce((sum, p) =>
@@ -891,7 +903,7 @@ function renderDashboardLowStock() {
   const count = document.getElementById("lowStockAlertCount");
   if (!container || !count) return;
 
-  const items = dashboardProducts.filter(p => Number(p.stock_quantity) <= 10)
+  const items = dashboardProducts.filter(p => Number(p.stock_quantity) <= lowStockThreshold)
     .sort((a, b) => Number(a.stock_quantity) - Number(b.stock_quantity));
   const shown = items.slice(0, 3);
   count.textContent = shown.length + " shown · " + items.length + " to restock";
