@@ -838,3 +838,78 @@
   .customer-account-profile-actions { align-items: stretch; flex-direction: column; }
   .customer-account-profile-save { width: 100%; }
 }
+
+
+/* Customer My Purchases — expandable full order details */
+.customer-order-details-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin: 12px 10px 0 0;
+  padding: 9px 14px;
+  border: 1px solid #d8e4d9;
+  border-radius: 9px;
+  background: #f4f8f4;
+  color: #2d6a4f;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.customer-order-details-toggle:hover {
+  background: #eaf3ec;
+}
+.customer-order-details-panel {
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #e5ece5;
+  border-radius: 12px;
+  background: #f9fbf8;
+}
+.customer-order-details-panel[hidden] {
+  display: none !important;
+}
+.customer-order-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.customer-order-details-grid .customer-order-meta {
+  background: #fff;
+  border: 1px solid #edf1ec;
+}
+.customer-order-details-title {
+  margin: 15px 0 6px;
+  color: #344a38;
+  font-size: 12px;
+}
+.customer-order-details-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.customer-order-details-items li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #e9eee8;
+  color: #59665c;
+  font-size: 12px;
+}
+.customer-order-details-items li:last-child {
+  border-bottom: 0;
+}
+.customer-order-details-items li strong {
+  color: #344a38;
+  white-space: nowrap;
+}
+@media (max-width: 560px) {
+  .customer-order-details-grid {
+    grid-template-columns: 1fr;
+  }
+  .customer-order-details-panel {
+    padding: 11px;
+  }
+}
