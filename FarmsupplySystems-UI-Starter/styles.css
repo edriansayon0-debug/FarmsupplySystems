@@ -913,3 +913,81 @@
     padding: 11px;
   }
 }
+
+/* Customer My Purchases — search and filter toolbar */
+.customer-order-history-tools {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(2, minmax(140px, 1fr)) auto;
+  align-items: end;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #e7ece6;
+  border-radius: 12px;
+  background: #f8faf7;
+}
+.customer-order-history-tools label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: #68766b;
+  font-size: 10px;
+  font-weight: 700;
+}
+.customer-order-history-tools input,
+.customer-order-history-tools select {
+  width: 100%;
+  min-width: 0;
+  min-height: 38px;
+  box-sizing: border-box;
+  border: 1px solid #dfe7df;
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px 10px;
+  color: #344a38;
+  font: inherit;
+  font-size: 12px;
+}
+.customer-order-filter-reset {
+  min-height: 38px;
+  border: 1px solid #d7e3d8;
+  border-radius: 8px;
+  background: #edf5ef;
+  padding: 9px 12px;
+  color: #2d6a4f;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.customer-order-filter-count {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #829084;
+  font-size: 11px;
+}
+.customer-order-card[hidden] {
+  display: none !important;
+}
+.customer-order-filter-empty[hidden] {
+  display: none !important;
+}
+@media (max-width: 700px) {
+  .customer-order-history-tools {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .customer-order-history-search {
+    grid-column: 1 / -1;
+  }
+  .customer-order-filter-reset {
+    width: 100%;
+  }
+}
+@media (max-width: 420px) {
+  .customer-order-history-tools {
+    grid-template-columns: 1fr;
+  }
+  .customer-order-history-search {
+    grid-column: auto;
+  }
+}
