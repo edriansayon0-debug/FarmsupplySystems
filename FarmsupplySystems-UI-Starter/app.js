@@ -98,6 +98,299 @@ function navigate(page) {
 
   
 
+
+async function renderProductsPage() {
+  location.hash = "products";
+  document.getElementById("sidebar").classList.remove("open");
+
+  content.innerHTML =
+    "<div class='product-page-heading'><div><span class='reports-kicker'>FARM SUPPLIES &amp; EQUIPMENT</span><h2>Product Master Database</h2><p>Manage your product catalog, prices, and availability</p></div><button class='product-primary-btn' id='productAddBtn'><span>＋</span> Add Product</button></div>" +
+    "<section class='product-toolbar'><div class='product-toolbar-left'><label class='product-search'><span>⌕</span><input id='productSearch' type='search' placeholder='Search products...' aria-label='Search products'></label><select id='productCategoryFilter' aria-label='Filter category'><option value='all'>Category: All Categories</option></select><select id='productStatusFilter' aria-label='Filter product status'><option value='active'>Status: Active</option><option value='archived'>Status: Archived</option><option value='all'>Status: All</option></select></div><span class='product-total' id='productTotal'>Loading products...</span></section>" +
+    "<section class='card product-table-card'><div class='product-table-wrap'><table class='product-table'><thead><tr><th>PRODUCT ID</th><th>PRODUCT NAME</th><th>CATEGORY</th><th>PRICE</th><th>STOCK</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id='productRows'><tr><td colspan='7'>Loading products...</td></tr></tbody></table></div><div class='product-pagination' id='productPagination'></div></section>";
+
+  let products = [];
+  let currentPage = 1;
+  const pageSize = 8;
+  let canManageProducts = false;
+  const searchInput = document.getElementById("productSearch");
+  const categoryFilter = document.getElementById("productCategoryFilter");
+  const statusFilter = document.getElementById("productStatusFilter");
+  const rowsElement = document.getElementById("productRows");
+  const totalElement = document.getElementById("productTotal");
+  const paginationElement = document.getElementById("productPagination");
+
+  function stockState(product) {
+    const quantity = Number(product.stock_quantity || 0);
+    if (quantity <= 0) return { label: "Out of Stock", className: "out" };
+    if (quantity <= lowStockThreshold) return { label: "Low Stock", className: "low" };
+    return { label: "In Stock", className: "in" };
+  }
+
+  function filteredProducts() {
+    const term = searchInput.value.trim().toLowerCase();
+    return products.filter(product => {
+      const matchesTerm = !term ||
+        [product.product_code, product.product_name, product.category]
+          .some(value => String(value || "").toLowerCase().includes(term));
+      const matchesCategory = categoryFilter.value === "all" ||
+        product.category === categoryFilter.value;
+      const matchesStatus = statusFilter.value === "all" ||
+        (statusFilter.value === "active" && product.is_active) ||
+        (statusFilter.value === "archived" && !product.is_active);
+      return matchesTerm && matchesCategory && matchesStatus;
+    });
+  }
+
+  function renderRows() {
+    const filtered = filteredProducts();
+    const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+    currentPage = Math.min(currentPage, pageCount);
+    const start = (currentPage - 1) * pageSize;
+    const pageProducts = filtered.slice(start, start + pageSize);
+    totalElement.textContent = filtered.length + (filtered.length === 1 ? " product" : " products");
+
+    if (!pageProducts.length) {
+      rowsElement.innerHTML = "<tr><td colspan='7' class='product-empty'>No products match your search or filters.</td></tr>";
+    } else {
+      rowsElement.innerHTML = pageProducts.map(product => {
+        const stock = stockState(product);
+        const status = product.is_active
+          ? "<span class='product-status " + stock.className + "'>" + stock.label + "</span>"
+          : "<span class='product-status archived'>Archived</span>";
+        const actions = canManageProducts
+          ? "<div class='product-row-actions'><button type='button' class='product-action-btn view' data-product-view='" + product.id + "'>View</button><button type='button' class='product-action-btn edit' data-product-edit='" + product.id + "'>Edit</button>" +
+            (product.is_active
+              ? "<button type='button' class='product-action-btn archive' data-product-archive='" + product.id + "'>Archive</button>"
+              : "<button type='button' class='product-action-btn restore' data-product-restore='" + product.id + "'>Restore</button>") +
+            "</div>"
+          : "<button type='button' class='product-action-btn view' data-product-view='" + product.id + "'>View</button>";
+        return "<tr>" +
+          "<td><span class='product-code'>" + safeText(product.product_code) + "</span></td>" +
+          "<td><span class='product-name'>" + safeText(product.product_name) + "</span></td>" +
+          "<td>" + safeText(product.category || "Uncategorized") + "</td>" +
+          "<td class='product-price'>" + money(product.price) + "</td>" +
+          "<td>" + Number(product.stock_quantity || 0).toLocaleString("en-PH") + " " + safeText(product.unit || "piece") + "</td>" +
+          "<td>" + status + "</td><td>" + actions + "</td></tr>";
+      }).join("");
+    }
+
+    paginationElement.innerHTML =
+      "<span>Showing " + (filtered.length ? start + 1 : 0) + "–" + Math.min(start + pageProducts.length, filtered.length) + " of " + filtered.length + "</span>" +
+      "<div class='product-page-buttons'><button type='button' data-product-page='" + (currentPage - 1) + "' " + (currentPage <= 1 ? "disabled" : "") + ">Previous</button>" +
+      "<span>Page " + currentPage + " of " + pageCount + "</span>" +
+      "<button type='button' data-product-page='" + (currentPage + 1) + "' " + (currentPage >= pageCount ? "disabled" : "") + ">Next</button></div>";
+
+    paginationElement.querySelectorAll("[data-product-page]").forEach(button => {
+      button.addEventListener("click", () => {
+        currentPage = Number(button.dataset.productPage);
+        renderRows();
+      });
+    });
+    rowsElement.querySelectorAll("[data-product-view]").forEach(button => {
+      button.addEventListener("click", () => openProductDetails(products.find(item => item.id === button.dataset.productView)));
+    });
+    rowsElement.querySelectorAll("[data-product-edit]").forEach(button => {
+      button.addEventListener("click", () => openProductForm(products.find(item => item.id === button.dataset.productEdit)));
+    });
+    rowsElement.querySelectorAll("[data-product-archive]").forEach(button => {
+      button.addEventListener("click", () => archiveProduct(products.find(item => item.id === button.dataset.productArchive)));
+    });
+    rowsElement.querySelectorAll("[data-product-restore]").forEach(button => {
+      button.addEventListener("click", () => restoreProduct(products.find(item => item.id === button.dataset.productRestore)));
+    });
+  }
+
+  async function loadProducts() {
+    rowsElement.innerHTML = "<tr><td colspan='7'>Loading products...</td></tr>";
+    const { data, error } = await supabase.from("products")
+      .select("id, organization_id, product_code, product_name, category, description, price, stock_quantity, unit, image_url, is_active, created_at, updated_at")
+      .eq("organization_id", ORG_ID)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    products = data || [];
+    const categories = [...new Set(products.map(product => product.category).filter(Boolean))].sort();
+    categoryFilter.innerHTML = "<option value='all'>Category: All Categories</option>" +
+      categories.map(category => "<option value='" + safeText(category) + "'>" + safeText(category) + "</option>").join("");
+    renderRows();
+  }
+
+  async function checkProductPermissions() {
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!userData.user) return false;
+      const [profileResult, membershipResult] = await Promise.all([
+        supabase.from("profiles").select("role").eq("id", userData.user.id).maybeSingle(),
+        supabase.from("organization_memberships").select("role,status")
+          .eq("organization_id", ORG_ID).eq("user_id", userData.user.id).eq("status", "active").maybeSingle()
+      ]);
+      if (profileResult.error) throw profileResult.error;
+      if (membershipResult.error) throw membershipResult.error;
+      return profileResult.data?.role === "super_admin" ||
+        membershipResult.data?.role === "org_admin";
+    } catch (error) {
+      console.warn("Could not verify product management permissions:", error);
+      return false;
+    }
+  }
+
+  function closeProductModal() {
+    const modal = document.querySelector(".product-modal");
+    if (modal) modal.remove();
+  }
+
+  function openProductDetails(product) {
+    if (!product) return;
+    closeProductModal();
+    const modal = document.createElement("div");
+    modal.className = "product-modal";
+    modal.innerHTML =
+      "<section class='product-modal-panel' role='dialog' aria-modal='true' aria-labelledby='productDetailsTitle'>" +
+      "<div class='product-modal-heading'><div><span class='reports-kicker'>PRODUCT DETAILS</span><h3 id='productDetailsTitle'>" + safeText(product.product_name) + "</h3></div><button type='button' class='product-modal-close' aria-label='Close'>×</button></div>" +
+      "<div class='product-details-grid'>" +
+      "<div><small>Product ID</small><strong>" + safeText(product.product_code) + "</strong></div>" +
+      "<div><small>Category</small><strong>" + safeText(product.category || "Uncategorized") + "</strong></div>" +
+      "<div><small>Price</small><strong>" + money(product.price) + "</strong></div>" +
+      "<div><small>Stock</small><strong>" + Number(product.stock_quantity || 0) + " " + safeText(product.unit || "piece") + "</strong></div>" +
+      "<div><small>Catalog Status</small><strong>" + (product.is_active ? "Active" : "Archived") + "</strong></div>" +
+      "<div><small>Stock Status</small><strong>" + stockState(product).label + "</strong></div>" +
+      "<div class='wide'><small>Description</small><p>" + safeText(product.description || "No description provided.") + "</p></div>" +
+      "</div><div class='product-modal-footer'><button type='button' class='product-secondary-btn product-modal-close'>Close</button></div></section>";
+    content.appendChild(modal);
+    modal.querySelectorAll(".product-modal-close").forEach(button => button.addEventListener("click", closeProductModal));
+    modal.addEventListener("click", event => { if (event.target === modal) closeProductModal(); });
+  }
+
+  function openProductForm(product) {
+    if (!canManageProducts) {
+      notify("Only organization administrators can manage products.");
+      return;
+    }
+    closeProductModal();
+    const editing = Boolean(product);
+    const modal = document.createElement("div");
+    modal.className = "product-modal";
+    modal.innerHTML =
+      "<section class='product-modal-panel product-form-panel' role='dialog' aria-modal='true' aria-labelledby='productFormTitle'>" +
+      "<div class='product-modal-heading'><div><span class='reports-kicker'>" + (editing ? "EDIT PRODUCT" : "NEW PRODUCT") + "</span><h3 id='productFormTitle'>" + (editing ? "Edit Product" : "Add Product") + "</h3><p>Maintain product information for your catalog</p></div><button type='button' class='product-modal-close' aria-label='Close'>×</button></div>" +
+      "<form id='productForm' class='product-form'>" +
+      "<label>Product Code<input name='product_code' required maxlength='40' placeholder='e.g. FS-051' value='" + safeText(product?.product_code || "") + "'></label>" +
+      "<label>Product Name<input name='product_name' required maxlength='160' placeholder='Enter product name' value='" + safeText(product?.product_name || "") + "'></label>" +
+      "<label>Category<input name='category' required maxlength='100' list='productCategoryOptions' placeholder='Select or type a category' value='" + safeText(product?.category || "") + "'><datalist id='productCategoryOptions'>" + [...new Set(products.map(item => item.category).filter(Boolean))].map(category => "<option value='" + safeText(category) + "'>").join("") + "</datalist></label>" +
+      "<label>Description<textarea name='description' rows='3' maxlength='1000' placeholder='Optional product description'>" + safeText(product?.description || "") + "</textarea></label>" +
+      "<div class='product-form-two'><label>Price (PHP)<input name='price' type='number' min='0' step='0.01' required value='" + (product ? Number(product.price || 0) : "") + "' placeholder='0.00'></label>" +
+      "<label>Unit<input name='unit' required maxlength='40' value='" + safeText(product?.unit || "piece") + "' placeholder='piece, set, bag...'></label></div>" +
+      (editing
+        ? "<label>Current Stock<input type='number' value='" + Number(product.stock_quantity || 0) + "' readonly><small>Use Inventory Management to record stock-in or stock-out.</small></label>"
+        : "<label>Opening Stock<input name='stock_quantity' type='number' min='0' step='1' required value='0'><small>Initial stock for this new product.</small></label>") +
+      "<label>Image URL (optional)<input name='image_url' type='url' maxlength='2000' value='" + safeText(product?.image_url || "") + "' placeholder='https://...'></label>" +
+      "<div class='product-modal-footer'><button type='button' class='product-secondary-btn product-modal-close'>Cancel</button><button type='submit' class='product-primary-btn' id='productSaveBtn'>" + (editing ? "Save Changes" : "Add Product") + "</button></div></form></section>";
+    content.appendChild(modal);
+    modal.querySelectorAll(".product-modal-close").forEach(button => button.addEventListener("click", closeProductModal));
+    modal.addEventListener("click", event => { if (event.target === modal) closeProductModal(); });
+    modal.querySelector("#productForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = new FormData(form);
+      const code = String(values.get("product_code") || "").trim();
+      const name = String(values.get("product_name") || "").trim();
+      const category = String(values.get("category") || "").trim();
+      const price = Number(values.get("price"));
+      const unit = String(values.get("unit") || "").trim();
+      const stock = editing ? Number(product.stock_quantity || 0) : Number(values.get("stock_quantity"));
+      if (!code || !name || !category || !unit || !Number.isFinite(price) || price < 0 ||
+          !Number.isInteger(stock) || stock < 0) {
+        notify("Please complete the required fields with valid price and stock values.");
+        return;
+      }
+      const duplicate = products.find(item => item.product_code.toLowerCase() === code.toLowerCase() && item.id !== product?.id);
+      if (duplicate) {
+        notify("That product code is already in use. Please choose another code.");
+        return;
+      }
+      const saveButton = document.getElementById("productSaveBtn");
+      saveButton.disabled = true;
+      saveButton.textContent = "Saving...";
+      const payload = {
+        organization_id: ORG_ID,
+        product_code: code,
+        product_name: name,
+        category: category,
+        description: String(values.get("description") || "").trim() || null,
+        price: price,
+        unit: unit,
+        image_url: String(values.get("image_url") || "").trim() || null,
+        is_active: product ? product.is_active : true
+      };
+      if (!editing) payload.stock_quantity = stock;
+      try {
+        let result;
+        if (editing) {
+          result = await supabase.from("products").update(payload)
+            .eq("id", product.id).eq("organization_id", ORG_ID).select("id").single();
+        } else {
+          result = await supabase.from("products").insert(payload).select("id").single();
+        }
+        if (result.error) throw result.error;
+        closeProductModal();
+        notify(editing ? "Product updated successfully." : "Product added successfully.");
+        await loadProducts();
+      } catch (error) {
+        console.error("Product save failed:", error);
+        notify("Unable to save product: " + (error.message || "Check your permissions and try again."));
+      } finally {
+        if (saveButton.isConnected) {
+          saveButton.disabled = false;
+          saveButton.textContent = editing ? "Save Changes" : "Add Product";
+        }
+      }
+    });
+  }
+
+  async function archiveProduct(product) {
+    if (!product || !canManageProducts) return;
+    if (!confirm("Archive " + product.product_name + "? It will no longer appear in the customer product catalog. You can restore it later.")) return;
+    const { error } = await supabase.from("products").update({ is_active: false })
+      .eq("id", product.id).eq("organization_id", ORG_ID);
+    if (error) {
+      notify("Unable to archive product: " + error.message);
+      return;
+    }
+    notify("Product archived. It can be restored from the Archived filter.");
+    await loadProducts();
+  }
+
+  async function restoreProduct(product) {
+    if (!product || !canManageProducts) return;
+    const { error } = await supabase.from("products").update({ is_active: true })
+      .eq("id", product.id).eq("organization_id", ORG_ID);
+    if (error) {
+      notify("Unable to restore product: " + error.message);
+      return;
+    }
+    notify("Product restored to the active catalog.");
+    await loadProducts();
+  }
+
+  document.getElementById("productAddBtn").addEventListener("click", () => openProductForm(null));
+  searchInput.addEventListener("input", () => { currentPage = 1; renderRows(); });
+  categoryFilter.addEventListener("change", () => { currentPage = 1; renderRows(); });
+  statusFilter.addEventListener("change", () => { currentPage = 1; renderRows(); });
+
+  try {
+    canManageProducts = await checkProductPermissions();
+    if (!canManageProducts) {
+      document.getElementById("productAddBtn").disabled = true;
+      document.getElementById("productAddBtn").title = "Organization administrator access required";
+    }
+    await loadProducts();
+  } catch (error) {
+    console.error("Product list load failed:", error);
+    rowsElement.innerHTML = "<tr><td colspan='7' class='product-empty'>Unable to load products. Please refresh and try again.</td></tr>";
+    notify("Unable to load products: " + (error.message || "Unknown error"));
+  }
+}
+
 async function renderInventoryPage() {
   content.innerHTML =
     "<div class='inventory-bi-heading'><div><span class='reports-kicker'>WAREHOUSE &amp; STOCK OPERATIONS</span><h2>Inventory Management</h2><p>Monitor product quantities and stock availability</p></div><button class='reports-refresh' id='inventoryRefresh'>↻ Refresh Stock</button></div>" +
@@ -401,6 +694,11 @@ document.querySelectorAll(".nav").forEach((nav) => {
   if (page === "dashboard") {
     location.hash = "";
     location.reload();
+    return;
+  }
+
+  if (page === "products") {
+    renderProductsPage();
     return;
   }
 
