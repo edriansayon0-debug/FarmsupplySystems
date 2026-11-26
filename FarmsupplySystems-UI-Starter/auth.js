@@ -659,6 +659,16 @@ function applyCustomerProductView() {
 
 function setCustomerProductMode(mode) {
   showFavoritesOnly = mode === "favorites";
+
+  // Favorites should show every saved item regardless of the shop's prior filters.
+  if (showFavoritesOnly) {
+    if (customerSearch) customerSearch.value = "";
+    selectedCustomerCategory = "all";
+    document.querySelectorAll("[data-shop-filter]").forEach(button => {
+      button.classList.toggle("active", button.dataset.shopFilter === "all");
+    });
+  }
+
   document.querySelectorAll("[data-customer-view]").forEach(link => {
     link.classList.toggle("active", link.dataset.customerView === mode);
   });
