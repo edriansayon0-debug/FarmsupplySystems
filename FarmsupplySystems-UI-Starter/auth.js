@@ -1760,7 +1760,7 @@ await loadCustomerOrderHistory();
 // CHECK EXISTING SESSION
 // ==========================================
 
-async function checkSession() {
+async async function checkSession() {
   showLogin();
 
   const { data, error } = await supabase.auth.getSession();
@@ -1781,7 +1781,7 @@ async function checkSession() {
 // LOGOUT
 // ==========================================
 
-async function signOutUser(button) {
+async async function signOutUser(button) {
   button.disabled = true;
 
   const { error } = await supabase.auth.signOut();
