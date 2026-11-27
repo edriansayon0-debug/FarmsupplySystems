@@ -1351,7 +1351,14 @@ document.querySelectorAll("[data-customer-view]").forEach(link => {
 function setCustomerCategory(category) {
   selectedCustomerCategory = category || "all";
   document.querySelectorAll("[data-shop-filter]").forEach(button => {
-    button.classList.toggle("active", button.dataset.shopFilter === selectedCustomerCategory);
+    const isSelected = button.dataset.shopFilter === selectedCustomerCategory;
+    button.classList.toggle("active", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
+  });
+  document.querySelectorAll("[data-shop-category]").forEach(button => {
+    const isSelected = button.dataset.shopCategory === selectedCustomerCategory;
+    button.classList.toggle("active", isSelected);
+    button.setAttribute("aria-pressed", String(isSelected));
   });
   applyCustomerProductView();
 }
