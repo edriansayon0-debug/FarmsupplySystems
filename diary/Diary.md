@@ -59,3 +59,4 @@
 2026-11-26 — Corrected customer catalog visual sort by assigning explicit CSS order to sorted grid cards in `FarmsupplySystems-UI-Starter/auth.js`; commit `ed7b5f63350104928e95418bc4215d2116339f03`.
 
 2026-11-27 — Reworked customer stock sorting to physically render in-stock products first and a labeled out-of-stock group last; updated `FarmsupplySystems-UI-Starter/auth.js` and `FarmsupplySystems-UI-Starter/styles.css`. Commits: 1d49147fd9472cabe9b735d640826fd4d68c7215 and 72fb16f3f93c68e7fc49780d766c8be2b47c984f.
+2026-11-27 — Set customer catalog default sort to “Stock: Available first” so in-stock products render first and zero-stock products are grouped last on initial load; updated `FarmsupplySystems-UI-Starter/index.html`. Commit `81fa9676407bb79dfc0838bcb0d0cdd24c54761b`.
