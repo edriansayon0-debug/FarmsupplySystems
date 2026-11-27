@@ -422,7 +422,7 @@ async function loadCustomerProducts() {
   const { data: products, error } = await supabase
     .from("products")
     .select(
-      "id, product_name, description, category, price, stock_quantity, unit, image_url"
+      "id, product_code, product_name, description, category, price, stock_quantity, unit, image_url"
     )
     .eq("organization_id", ORGANIZATION_ID)
     .eq("is_active", true)
@@ -1232,69 +1232,29 @@ function openCustomerProductComparison() {
   modal.querySelector(".shop-compare-modal").focus();
 }
 
-function normalizeCustomerProductCategory(value) {
-  const normalized = String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ");
-
-  // Product records use specific categories while the storefront uses broader groups.
-  return normalized.endsWith("s") ? normalized.slice(0, -1) : normalized;
-}
+const CUSTOMER_PRODUCT_CATEGORY_RANGES = Object.freeze({
+  "tractors-planting": [1, 16],
+  "irrigation-water": [17, 20],
+  "fencing-livestock": [21, 34],
+  "storage-handling": [35, 38],
+  "maintenance-repair": [39, 43],
+  "safety": [44, 47],
+  "agricultural-chemicals": [48, 52],
+  "additional": [53, 54]
+});
 
 function matchesCustomerProductCategory(product, selectedCategory) {
   if (selectedCategory === "all") return true;
 
-  const category = normalizeCustomerProductCategory(product.category);
-  const name = normalizeCustomerProductCategory(product.product_name);
-  const hasNamePhrase = phrase =>
-    (" " + name + " ").includes(" " + normalizeCustomerProductCategory(phrase) + " ");
+  const range = CUSTOMER_PRODUCT_CATEGORY_RANGES[selectedCategory];
+  if (!range) return false;
 
-  const matchesAnimalFeed =
-    ["feed", "feeding", "hay", "supplement"].includes(category) ||
-    ["feed", "feeder", "grain mix", "mineral supplement"].some(hasNamePhrase);
+  const productCode = String(product.product_code || "").trim().toUpperCase();
+  const codeMatch = /^FS-(\\d{3})$/.exec(productCode);
+  if (!codeMatch) return false;
 
-  const matchesSeeds =
-    ["drill", "planter"].includes(category) ||
-    ["seed", "seeder", "planter", "grain drill"].some(hasNamePhrase);
-
-  const matchesFertilizers =
-    category === "fertilizer" ||
-    ["fertilizer", "fertiliser"].some(hasNamePhrase);
-
-  // The current catalog stores crop-protection products as Chemicals.
-  const matchesSprayers =
-    ["chemical", "sprayer"].includes(category) ||
-    ["spray", "sprayer", "herbicide", "insecticide", "pesticide"].some(hasNamePhrase);
-
-  const matchesIrrigation =
-    ["irrigation", "pump"].includes(category) ||
-    ["irrigation", "sprinkler", "drip irrigation", "water pump"].some(hasNamePhrase);
-
-  switch (selectedCategory) {
-    case "Animal feed":
-      return matchesAnimalFeed;
-    case "Seeds":
-      return matchesSeeds;
-    case "Fertilizers":
-      return matchesFertilizers;
-    case "Sprayers":
-      return matchesSprayers;
-    case "Irrigation":
-      return matchesIrrigation;
-    case "Farm tools":
-      // Keep the category groups exclusive so a product appears in one
-      // relevant filter instead of being duplicated across categories.
-      return !(
-        matchesAnimalFeed ||
-        matchesSeeds ||
-        matchesFertilizers ||
-        matchesSprayers ||
-        matchesIrrigation
-      );
-    default:
-      return category === normalizeCustomerProductCategory(selectedCategory);
-  }
+  const productNumber = Number(codeMatch[1]);
+  return productNumber >= range[0] && productNumber <= range[1];
 }
 
 function applyCustomerProductView() {
