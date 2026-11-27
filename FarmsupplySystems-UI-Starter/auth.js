@@ -1252,7 +1252,7 @@ function matchesCustomerProductCategory(product, selectedCategory) {
 
   const matchesAnimalFeed =
     ["feed", "feeding", "hay", "supplement"].includes(category) ||
-    /\\b(feed|feeder|hay|grain mix|mineral supplement)\\b/i.test(name);
+    /\\b(feed|feeder|hay bale|grain mix|mineral supplement)\\b/i.test(name);
 
   const matchesSeeds =
     ["drill", "planter"].includes(category) ||
