@@ -1236,11 +1236,9 @@ function normalizeCustomerProductCategory(value) {
   const normalized = String(value || "")
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .replace(/\\s+/g, " ");
+    .replace(/[^a-z0-9]+/g, " ");
 
-  // Product records use singular category names (Feed, Hay, Fertilizer)
-  // while the storefront offers broader, sometimes plural, filter labels.
+  // Product records use specific categories while the storefront uses broader groups.
   return normalized.endsWith("s") ? normalized.slice(0, -1) : normalized;
 }
 
@@ -1248,28 +1246,30 @@ function matchesCustomerProductCategory(product, selectedCategory) {
   if (selectedCategory === "all") return true;
 
   const category = normalizeCustomerProductCategory(product.category);
-  const name = String(product.product_name || "").toLowerCase();
+  const name = normalizeCustomerProductCategory(product.product_name);
+  const hasNamePhrase = phrase =>
+    (" " + name + " ").includes(" " + normalizeCustomerProductCategory(phrase) + " ");
 
   const matchesAnimalFeed =
     ["feed", "feeding", "hay", "supplement"].includes(category) ||
-    /\\b(feed|feeder|hay bale|grain mix|mineral supplement)\\b/i.test(name);
+    ["feed", "feeder", "grain mix", "mineral supplement"].some(hasNamePhrase);
 
   const matchesSeeds =
     ["drill", "planter"].includes(category) ||
-    /\\b(seed|seeder|planter|grain drill)\\b/i.test(name);
+    ["seed", "seeder", "planter", "grain drill"].some(hasNamePhrase);
 
   const matchesFertilizers =
     category === "fertilizer" ||
-    /\\bfertili[sz]er\\b/i.test(name);
+    ["fertilizer", "fertiliser"].some(hasNamePhrase);
 
   // The current catalog stores crop-protection products as Chemicals.
   const matchesSprayers =
     ["chemical", "sprayer"].includes(category) ||
-    /\\b(spray|sprayer|herbicide|insecticide|pesticide)\\b/i.test(name);
+    ["spray", "sprayer", "herbicide", "insecticide", "pesticide"].some(hasNamePhrase);
 
   const matchesIrrigation =
     ["irrigation", "pump"].includes(category) ||
-    /\\b(irrigation|sprinkler|drip irrigation|water pump)\\b/i.test(name);
+    ["irrigation", "sprinkler", "drip irrigation", "water pump"].some(hasNamePhrase);
 
   switch (selectedCategory) {
     case "Animal feed":
