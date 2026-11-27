@@ -1237,11 +1237,16 @@ function applyCustomerProductView() {
   const grid = customerProducts.querySelector(".shop-product-grid");
   if (!grid) return;
 
-  const cards = Array.from(grid.children);
+  const cards = Array.from(grid.querySelectorAll(".shop-product-card"));
   let visible = 0;
-  cards.forEach((card, index) => {
-    const product = availableProducts.find(item => String(item.id) === String(card.dataset.productId));
+  let visibleOutOfStock = 0;
+
+  cards.forEach(card => {
+    const product = availableProducts.find(item =>
+      String(item.id) === String(card.dataset.productId)
+    );
     if (!product) return;
+
     const category = String(product.category || "").toLowerCase();
     const matchesCategory = selectedCustomerCategory === "all" ||
       category === selectedCustomerCategory.toLowerCase();
@@ -1250,10 +1255,24 @@ function applyCustomerProductView() {
     const matchesSearch = !query || haystack.includes(query);
     const matchesFavorites = !showFavoritesOnly || favoriteProductIds.has(product.id);
     const shouldShowCard = matchesCategory && matchesSearch && matchesFavorites;
+
     card.hidden = !shouldShowCard;
     card.style.display = shouldShowCard ? "flex" : "none";
-    if (shouldShowCard) visible++;
+
+    if (shouldShowCard) {
+      visible++;
+      const stock = Number(product.stock_quantity);
+      if (!Number.isFinite(stock) || stock <= 0) visibleOutOfStock++;
+    }
   });
+
+  const stockGroupHeading = grid.querySelector(".shop-out-of-stock-divider");
+  if (stockGroupHeading) {
+    stockGroupHeading.hidden = visibleOutOfStock === 0;
+    stockGroupHeading.textContent =
+      "Out of stock · " + visibleOutOfStock +
+      (visibleOutOfStock === 1 ? " product" : " products");
+  }
 
   if (customerProductCount) {
     customerProductCount.textContent = showFavoritesOnly
@@ -1275,7 +1294,6 @@ function applyCustomerProductView() {
     emptyState.remove();
   }
 }
-
 function setCustomerProductMode(mode) {
   showFavoritesOnly = mode === "favorites";
 
@@ -1330,7 +1348,7 @@ function applyCustomerProductSort() {
   if (!grid) return;
 
   const sortValue = customerSort?.value || "recommended";
-  const products = [...availableProducts];
+  let products = [...availableProducts];
   const stockOf = product => {
     const value = Number(product.stock_quantity);
     return Number.isFinite(value) ? Math.max(0, value) : 0;
@@ -1345,37 +1363,75 @@ function applyCustomerProductSort() {
   } else if (sortValue === "name") {
     products.sort(byName);
   } else if (sortValue === "stock-available") {
-    products.sort((a, b) => {
-      const aStock = stockOf(a);
-      const bStock = stockOf(b);
+    const inStock = products
+      .filter(product => stockOf(product) > 0)
+      .sort((a, b) => stockOf(b) - stockOf(a) || byName(a, b));
+    const outOfStock = products
+      .filter(product => stockOf(product) <= 0)
+      .sort(byName);
 
-      // Explicitly put zero-stock products after every product with stock.
-      if (aStock <= 0 && bStock > 0) return 1;
-      if (aStock > 0 && bStock <= 0) return -1;
+    // Build the grid in document order, with a dedicated out-of-stock
+    // divider between available products and zero-stock products.
+    products = [...inStock, ...outOfStock];
 
-      // Within each group, show higher stock first; use name for ties.
-      return bStock - aStock || byName(a, b);
+    const cardsByProductId = new Map(
+      Array.from(grid.querySelectorAll(".shop-product-card")).map(card => [
+        String(card.dataset.productId),
+        card
+      ])
+    );
+    const fragment = document.createDocumentFragment();
+
+    inStock.forEach(product => {
+      const card = cardsByProductId.get(String(product.id));
+      if (card) {
+        card.style.removeProperty("order");
+        fragment.appendChild(card);
+      }
     });
+
+    if (outOfStock.length > 0) {
+      const divider = document.createElement("div");
+      divider.className = "shop-out-of-stock-divider";
+      divider.setAttribute("role", "heading");
+      divider.setAttribute("aria-level", "3");
+      divider.textContent = "Out of stock · " + outOfStock.length +
+        (outOfStock.length === 1 ? " product" : " products");
+      fragment.appendChild(divider);
+    }
+
+    outOfStock.forEach(product => {
+      const card = cardsByProductId.get(String(product.id));
+      if (card) {
+        card.style.removeProperty("order");
+        fragment.appendChild(card);
+      }
+    });
+
+    grid.replaceChildren(fragment);
+    return;
   }
 
-  const productOrder = new Map(
-    products.map((product, index) => [String(product.id), index])
+  // For all other sort modes, render the sorted product cards in the
+  // exact DOM order rather than relying on CSS order values.
+  const cardsByProductId = new Map(
+    Array.from(grid.querySelectorAll(".shop-product-card")).map(card => [
+      String(card.dataset.productId),
+      card
+    ])
   );
-  const cards = Array.from(grid.children);
-  cards.sort((a, b) => {
-    const aOrder = productOrder.get(String(a.dataset.productId));
-    const bOrder = productOrder.get(String(b.dataset.productId));
-    return (aOrder ?? Number.MAX_SAFE_INTEGER) -
-      (bOrder ?? Number.MAX_SAFE_INTEGER);
-  });
-  // Grid items honor CSS order during auto-placement; set it explicitly as well
-  // as moving DOM nodes so the visual card order matches the selected sort.
-  cards.forEach((card, index) => {
-    card.style.order = String(index);
-    grid.appendChild(card);
-  });
-}
+  const fragment = document.createDocumentFragment();
 
+  products.forEach(product => {
+    const card = cardsByProductId.get(String(product.id));
+    if (card) {
+      card.style.removeProperty("order");
+      fragment.appendChild(card);
+    }
+  });
+
+  grid.replaceChildren(fragment);
+}
 customerSort?.addEventListener("change", () => {
   applyCustomerProductSort();
   applyCustomerProductView();
