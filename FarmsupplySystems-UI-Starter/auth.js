@@ -1232,6 +1232,71 @@ function openCustomerProductComparison() {
   modal.querySelector(".shop-compare-modal").focus();
 }
 
+function normalizeCustomerProductCategory(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\\s+/g, " ");
+
+  // Product records use singular category names (Feed, Hay, Fertilizer)
+  // while the storefront offers broader, sometimes plural, filter labels.
+  return normalized.endsWith("s") ? normalized.slice(0, -1) : normalized;
+}
+
+function matchesCustomerProductCategory(product, selectedCategory) {
+  if (selectedCategory === "all") return true;
+
+  const category = normalizeCustomerProductCategory(product.category);
+  const name = String(product.product_name || "").toLowerCase();
+
+  const matchesAnimalFeed =
+    ["feed", "feeding", "hay", "supplement"].includes(category) ||
+    /\\b(feed|feeder|hay|grain mix|mineral supplement)\\b/i.test(name);
+
+  const matchesSeeds =
+    ["drill", "planter"].includes(category) ||
+    /\\b(seed|seeder|planter|grain drill)\\b/i.test(name);
+
+  const matchesFertilizers =
+    category === "fertilizer" ||
+    /\\bfertili[sz]er\\b/i.test(name);
+
+  // The current catalog stores crop-protection products as Chemicals.
+  const matchesSprayers =
+    ["chemical", "sprayer"].includes(category) ||
+    /\\b(spray|sprayer|herbicide|insecticide|pesticide)\\b/i.test(name);
+
+  const matchesIrrigation =
+    ["irrigation", "pump"].includes(category) ||
+    /\\b(irrigation|sprinkler|drip irrigation|water pump)\\b/i.test(name);
+
+  switch (selectedCategory) {
+    case "Animal feed":
+      return matchesAnimalFeed;
+    case "Seeds":
+      return matchesSeeds;
+    case "Fertilizers":
+      return matchesFertilizers;
+    case "Sprayers":
+      return matchesSprayers;
+    case "Irrigation":
+      return matchesIrrigation;
+    case "Farm tools":
+      // Keep the category groups exclusive so a product appears in one
+      // relevant filter instead of being duplicated across categories.
+      return !(
+        matchesAnimalFeed ||
+        matchesSeeds ||
+        matchesFertilizers ||
+        matchesSprayers ||
+        matchesIrrigation
+      );
+    default:
+      return category === normalizeCustomerProductCategory(selectedCategory);
+  }
+}
+
 function applyCustomerProductView() {
   const query = (customerSearch?.value || "").trim().toLowerCase();
   const grid = customerProducts.querySelector(".shop-product-grid");
@@ -1247,9 +1312,10 @@ function applyCustomerProductView() {
     );
     if (!product) return;
 
-    const category = String(product.category || "").toLowerCase();
-    const matchesCategory = selectedCustomerCategory === "all" ||
-      category === selectedCustomerCategory.toLowerCase();
+    const matchesCategory = matchesCustomerProductCategory(
+      product,
+      selectedCustomerCategory
+    );
     const haystack = [product.product_name, product.description, product.category]
       .filter(Boolean).join(" ").toLowerCase();
     const matchesSearch = !query || haystack.includes(query);
