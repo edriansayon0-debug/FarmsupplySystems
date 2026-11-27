@@ -1250,10 +1250,10 @@ function matchesCustomerProductCategory(product, selectedCategory) {
   if (!range) return false;
 
   const productCode = String(product.product_code || "").trim().toUpperCase();
-  const codeMatch = /^FS-(\\d{3})$/.exec(productCode);
-  if (!codeMatch) return false;
+  if (!productCode.startsWith("FS-") || productCode.length !== 6) return false;
 
-  const productNumber = Number(codeMatch[1]);
+  const productNumber = Number(productCode.slice(3));
+  if (!Number.isInteger(productNumber)) return false;
   return productNumber >= range[0] && productNumber <= range[1];
 }
 
