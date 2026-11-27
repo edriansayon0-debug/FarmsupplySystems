@@ -412,7 +412,7 @@
 ========================================== */
 .customer-portal{min-height:100vh;background:#f5f4ec;color:#24352b;font-family:'DM Sans',sans-serif;--shop-forest:#1c4636;--shop-green:#2e6c50;--shop-sage:#e7eddd;--shop-paper:#f5f4ec;--shop-muted:#788477;--shop-line:#e5e8dd}
 .customer-portal[style*="display: none"]{display:none!important}
-.shop-sidebar{position:fixed;inset:0 auto 0 0;width:208px;padding:25px 16px 17px;background:#1c4636;color:#f7f8f2;display:flex;flex-direction:column;z-index:20}
+.shop-sidebar{position:fixed;inset:0 auto 0 0;width:208px;padding:25px 16px 17px;background:#1c4636;color:#f7f8f2;display:flex;flex-direction:column;z-index:20;overflow-y:auto;overscroll-behavior:contain}
 .shop-brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;margin-bottom:36px}
 .shop-brand-mark{width:37px;height:37px;border-radius:12px;background:#326c51;display:grid;place-items:center;font-size:25px}
 .shop-brand strong{display:block;font:700 13px Outfit,sans-serif;line-height:1.25}
