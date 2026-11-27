@@ -57,3 +57,5 @@
 2026-11-26 — Added customer catalog sorting by stock availability (in-stock products first, then higher stock) with deterministic tie-breakers; updated `FarmsupplySystems-UI-Starter/auth.js` and `FarmsupplySystems-UI-Starter/index.html`. Commits: `236d021c7136b12e5b92d19fec949ea9876092d0`, `ab7d8f1afcc57642e29adfa0ed69d4d113d9008d`.
 2026-11-26 — Hardened customer product sorting with explicit zero-stock-last comparison, numeric stock normalization, stable name tie-breaks, and reapplying the selected sort after product rendering. Updated `FarmsuppliesSystems-UI-Starter/auth.js`; `app.js` remains unchanged.
 2026-11-26 — Corrected customer catalog visual sort by assigning explicit CSS order to sorted grid cards in `FarmsupplySystems-UI-Starter/auth.js`; commit `ed7b5f63350104928e95418bc4215d2116339f03`.
+
+2026-11-27 — Reworked customer stock sorting to physically render in-stock products first and a labeled out-of-stock group last; updated `FarmsupplySystems-UI-Starter/auth.js` and `FarmsupplySystems-UI-Starter/styles.css`. Commits: 1d49147fd9472cabe9b735d640826fd4d68c7215 and 72fb16f3f93c68e7fc49780d766c8be2b47c984f.
