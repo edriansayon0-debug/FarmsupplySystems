@@ -60,3 +60,4 @@
 
 2026-11-27 — Reworked customer stock sorting to physically render in-stock products first and a labeled out-of-stock group last; updated `FarmsupplySystems-UI-Starter/auth.js` and `FarmsupplySystems-UI-Starter/styles.css`. Commits: 1d49147fd9472cabe9b735d640826fd4d68c7215 and 72fb16f3f93c68e7fc49780d766c8be2b47c984f.
 2026-11-27 — Set customer catalog default sort to “Stock: Available first” so in-stock products render first and zero-stock products are grouped last on initial load; updated `FarmsupplySystems-UI-Starter/index.html`. Commit `81fa9676407bb79dfc0838bcb0d0cdd24c54761b`.
+2026-11-27 — Added 18 existing generated Organization A product images under `FarmsupplySystems-UI-Starter/assets/products/` for products FS-001–FS-011, FS-018, FS-021, FS-025, FS-029–FS-031, and FS-035; image assets commit `88ee0434041d9398602b8d243406831a848c6c29`.
